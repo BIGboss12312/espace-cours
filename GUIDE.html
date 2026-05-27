@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guide de Configuration — Mon Site Enseignant</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Tajawal:wght@400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: #f0f4ff; color: #0f172a; padding: 32px 16px; line-height: 1.6; }
+
+    .page { max-width: 900px; margin: 0 auto; }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 50%, #4c1d95 100%);
+      border-radius: 24px; padding: 44px 52px; color: white;
+      margin-bottom: 28px; position: relative; overflow: hidden;
+    }
+    .header::before {
+      content: '⚙️'; position: absolute; right: 40px; top: 50%;
+      transform: translateY(-50%); font-size: 100px; opacity: 0.08;
+    }
+    .header-badge {
+      display: inline-block; background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25); border-radius: 30px;
+      padding: 5px 18px; font-size: 13px; font-weight: 500; margin-bottom: 14px;
+    }
+    .header h1 { font-size: 34px; font-weight: 900; margin-bottom: 10px; }
+    .header p  { font-size: 15px; opacity: 0.8; max-width: 520px; }
+
+    /* Progress bar */
+    .progress-bar {
+      background: white; border-radius: 20px; padding: 22px 28px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e2e8f0;
+      margin-bottom: 28px;
+    }
+    .progress-bar h2 { font-size: 15px; font-weight: 700; margin-bottom: 16px; color: #0f172a; }
+    .steps-row { display: flex; gap: 0; }
+    .step-pill {
+      flex: 1; text-align: center; padding: 10px 4px; position: relative;
+      font-size: 12px; font-weight: 600; color: #94a3b8;
+    }
+    .step-pill::after {
+      content: ''; position: absolute; top: 50%; right: 0;
+      width: 1px; height: 24px; background: #e2e8f0; transform: translateY(-50%);
+    }
+    .step-pill:last-child::after { display: none; }
+    .step-pill .sp-num {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: #f1f5f9; border: 2px solid #e2e8f0;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 6px; font-size: 12px;
+    }
+    .step-pill.done { color: #059669; }
+    .step-pill.done .sp-num { background: #d1fae5; border-color: #6ee7b7; }
+    .step-pill.active { color: #1d4ed8; }
+    .step-pill.active .sp-num { background: #dbeafe; border-color: #93c5fd; }
+    @media (max-width: 600px) { .steps-row { flex-direction: column; gap: 8px; } .step-pill::after { display: none; } }
+
+    /* Cards */
+    .card {
+      background: white; border-radius: 18px; border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06); overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .card-header {
+      display: flex; align-items: center; gap: 14px;
+      padding: 20px 28px; border-bottom: 1px solid #f1f5f9;
+    }
+    .card-num {
+      width: 36px; height: 36px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 800; color: white; flex-shrink: 0;
+    }
+    .card-title { font-size: 17px; font-weight: 800; color: #0f172a; }
+    .card-sub   { font-size: 13px; color: #64748b; margin-top: 2px; }
+    .card-time  { margin-left: auto; font-size: 12px; font-weight: 600; color: #94a3b8; background: #f8fafc; padding: 4px 12px; border-radius: 20px; flex-shrink: 0; }
+    .card-body  { padding: 24px 28px; }
+
+    /* Step items */
+    .step-list { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+    .step-item { display: flex; gap: 14px; align-items: flex-start; }
+    .step-dot {
+      width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: white; margin-top: 1px;
+    }
+    .step-content { flex: 1; }
+    .step-content strong { display: block; font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 3px; }
+    .step-content p { font-size: 13px; color: #64748b; line-height: 1.6; }
+    .step-content a { color: #1d4ed8; font-weight: 600; text-decoration: none; }
+    .step-content a:hover { text-decoration: underline; }
+
+    /* Code blocks */
+    .code-block {
+      background: #0f172a; border-radius: 12px;
+      padding: 16px 20px; margin: 12px 0;
+      font-family: 'Fira Code', monospace; font-size: 13px;
+      color: #e2e8f0; overflow-x: auto; position: relative;
+    }
+    .code-block .comment { color: #64748b; }
+    .code-block .key     { color: #93c5fd; }
+    .code-block .val     { color: #86efac; }
+    .code-block .replace { color: #fbbf24; font-weight: 600; }
+    .copy-btn {
+      position: absolute; top: 10px; right: 12px;
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+      color: #94a3b8; border-radius: 6px; padding: 4px 10px;
+      font-size: 11px; cursor: pointer; font-family: inherit; transition: all 0.2s;
+    }
+    .copy-btn:hover { background: rgba(255,255,255,0.2); color: white; }
+
+    /* Alerts */
+    .alert {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 14px 18px; border-radius: 12px;
+      font-size: 13px; line-height: 1.6; margin: 12px 0;
+    }
+    .alert-icon { font-size: 20px; flex-shrink: 0; }
+    .alert.info    { background: #dbeafe; color: #1e3a8a; border: 1px solid #93c5fd; }
+    .alert.success { background: #d1fae5; color: #064e3b; border: 1px solid #6ee7b7; }
+    .alert.warning { background: #fef3c7; color: #78350f; border: 1px solid #fde68a; }
+    .alert.tip     { background: #fdf4ff; color: #581c87; border: 1px solid #d8b4fe; }
+
+    /* File tree */
+    .file-tree {
+      background: #0f172a; border-radius: 12px; padding: 20px 24px;
+      font-family: 'Fira Code', monospace; font-size: 13px; line-height: 1.9;
+      margin: 12px 0;
+    }
+    .ft-folder { color: #60a5fa; font-weight: 600; }
+    .ft-html   { color: #f97316; }
+    .ft-css    { color: #a78bfa; }
+    .ft-js     { color: #fbbf24; }
+    .ft-guide  { color: #34d399; }
+    .ft-comment{ color: #475569; font-style: italic; }
+
+    /* Table */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 12px 0; border-radius: 12px; overflow: hidden; }
+    th { background: #1e3a8a; color: white; padding: 12px 16px; text-align: left; font-weight: 700; }
+    td { padding: 11px 16px; border-bottom: 1px solid #f1f5f9; color: #374151; }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) td { background: #f8fafc; }
+
+    /* Quick actions */
+    .quick-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+    .qbtn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 12px;
+      font-size: 14px; font-weight: 600; text-decoration: none;
+      border: none; cursor: pointer; transition: all 0.2s; font-family: inherit;
+    }
+    .qbtn:hover { transform: translateY(-2px); }
+    .qbtn-primary { background: linear-gradient(135deg,#1e3a8a,#3b82f6); color: white; box-shadow: 0 4px 14px rgba(29,78,216,0.3); }
+    .qbtn-outline { background: white; border: 1.5px solid #e2e8f0; color: #374151; }
+    .qbtn-outline:hover { border-color: #3b82f6; color: #1d4ed8; }
+
+    /* Section divider */
+    .divider { height: 1px; background: #e2e8f0; margin: 8px 0 20px; }
+
+    /* Checklist */
+    .checklist { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .checklist li {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 14px; color: #374151;
+      background: #f8fafc; border: 1px solid #e2e8f0;
+      border-radius: 10px; padding: 12px 16px;
+    }
+    .check-box {
+      width: 22px; height: 22px; border: 2px solid #cbd5e1;
+      border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.2s; font-size: 13px;
+    }
+    .check-box.checked { background: #1d4ed8; border-color: #1d4ed8; color: white; }
+
+    /* Footer */
+    .footer {
+      text-align: center; color: #94a3b8; font-size: 13px;
+      padding: 28px 0; margin-top: 8px;
+    }
+    .footer a { color: #1d4ed8; font-weight: 600; text-decoration: none; }
+
+    @media print {
+      body { background: white; }
+      .page { max-width: 100%; }
+      .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-badge">📋 Guide Complet — Pas à pas</div>
+    <h1>Configuration de Votre Site</h1>
+    <p>Suivez ces étapes simples pour mettre en ligne votre espace cours. Tout est expliqué en détail.</p>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-bar">
+    <h2>📍 Votre progression — 4 étapes</h2>
+    <div class="steps-row">
+      <div class="step-pill active">
+        <div class="sp-num">1</div>Comptes gratuits
+      </div>
+      <div class="step-pill">
+        <div class="sp-num">2</div>Configurer Supabase
+      </div>
+      <div class="step-pill">
+        <div class="sp-num">3</div>Mettre en ligne
+      </div>
+      <div class="step-pill">
+        <div class="sp-num">4</div>Ajouter vos élèves
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick links to site pages -->
+  <div class="card">
+    <div class="card-body" style="padding-top:20px;">
+      <p style="font-weight:700;font-size:15px;margin-bottom:12px;">🚀 Votre site est prêt — Ouvrez-le ici :</p>
+      <div class="quick-btns">
+        <a href="index.html"   class="qbtn qbtn-primary">🔐 Page de Connexion</a>
+        <a href="accueil.html" class="qbtn qbtn-outline">🏠 Tableau de Bord</a>
+        <a href="videos.html"  class="qbtn qbtn-outline">🎬 Vidéos</a>
+        <a href="direct.html"  class="qbtn qbtn-outline">📡 Cours Direct</a>
+      </div>
+      <div class="alert info" style="margin-top:16px;margin-bottom:0;">
+        <span class="alert-icon">🧪</span>
+        <div><strong>Mode démo actif</strong> — Connectez-vous avec <code>ahmed@demo.tn</code> / <code>demo123</code> pour tester le site sans configuration.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Files list -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-num" style="background:#1e3a8a;">📁</div>
+      <div>
+        <div class="card-title">Les Fichiers de Votre Site</div>
+        <div class="card-sub">Tous créés dans le dossier <code>mon_site_enseignant</code></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="file-tree">
+        <span class="ft-folder">📁 mon_site_enseignant/</span><br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-js">⚙️ config.js</span>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-comment">← Vos réglages (vidéos, planning, Supabase)</span><br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-css">🎨 style.css</span>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-comment">← Le design du site (ne pas modifier)</span><br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-html">🔐 index.html</span>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-comment">← Page de connexion des élèves</span><br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-html">🏠 accueil.html</span>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-comment">← Tableau de bord (après connexion)</span><br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-html">🎬 videos.html</span>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-comment">← Galerie de vos cours enregistrés</span><br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-html">📡 direct.html</span>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-comment">← Page de cours en direct (live)</span><br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-guide">📋 GUIDE.html</span>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-comment">← Ce fichier (guide de configuration)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ETAPE 1 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-num" style="background:linear-gradient(135deg,#1e3a8a,#3b82f6);">1</div>
+      <div>
+        <div class="card-title">Créer vos Comptes Gratuits</div>
+        <div class="card-sub">GitHub et Supabase — nécessaires pour mettre le site en ligne</div>
+      </div>
+      <div class="card-time">⏱️ 30 min</div>
+    </div>
+    <div class="card-body">
+      <ul class="step-list">
+        <li class="step-item">
+          <div class="step-dot" style="background:#1e3a8a;">1</div>
+          <div class="step-content">
+            <strong>Créer un compte GitHub (hébergement gratuit)</strong>
+            <p>Allez sur <a href="https://github.com" target="_blank">github.com</a> → Cliquez "Sign up" → Entrez votre email, créez un mot de passe.<br/>
+            GitHub va héberger votre site gratuitement (comme un serveur gratuit).</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-dot" style="background:#059669;">2</div>
+          <div class="step-content">
+            <strong>Créer un compte Supabase (base de données gratuite)</strong>
+            <p>Allez sur <a href="https://supabase.com" target="_blank">supabase.com</a> → "Start your project" → Connectez-vous avec votre compte GitHub.<br/>
+            Supabase va stocker les comptes de vos élèves (emails + mots de passe) de façon sécurisée.</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-dot" style="background:#d97706;">3</div>
+          <div class="step-content">
+            <strong>Créer un projet Supabase</strong>
+            <p>Dans Supabase → "New project" → Choisissez un nom (ex: "espace-cours") → Choisissez une région Europe → Créez un mot de passe fort → Cliquez "Create new project".<br/>
+            Attendez 1-2 minutes que le projet se crée.</p>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ETAPE 2 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-num" style="background:linear-gradient(135deg,#059669,#34d399);">2</div>
+      <div>
+        <div class="card-title">Configurer Supabase dans config.js</div>
+        <div class="card-sub">Connecter votre site à votre base de données</div>
+      </div>
+      <div class="card-time">⏱️ 15 min</div>
+    </div>
+    <div class="card-body">
+      <ul class="step-list">
+        <li class="step-item">
+          <div class="step-dot" style="background:#1e3a8a;">1</div>
+          <div class="step-content">
+            <strong>Récupérer votre clé Supabase</strong>
+            <p>Dans votre projet Supabase → Cliquez <strong>"Settings"</strong> (icône engrenage) → <strong>"API"</strong> → Copiez :<br/>
+            • <strong>Project URL</strong> (commence par https://)<br/>
+            • <strong>anon / public key</strong> (longue chaîne de lettres)</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-dot" style="background:#7c3aed;">2</div>
+          <div class="step-content">
+            <strong>Ouvrir config.js avec Notepad ou VS Code</strong>
+            <p>Trouvez le fichier <code>config.js</code> dans votre dossier → Faites clic droit → "Ouvrir avec" → Notepad (ou VS Code).</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-dot" style="background:#dc2626;">3</div>
+          <div class="step-content">
+            <strong>Remplacez ces 3 lignes dans config.js</strong>
+            <div class="code-block">
+              <button class="copy-btn" onclick="this.textContent='✅ Copié!'">📋 Copier</button>
+<span class="comment">// Avant (à remplacer) :</span><br/>
+<span class="key">const</span> <span class="val">SUPABASE_URL</span>      = <span class="replace">"https://VOTRE_PROJET.supabase.co"</span>;<br/>
+<span class="key">const</span> <span class="val">SUPABASE_ANON_KEY</span> = <span class="replace">"VOTRE_CLE_ANON_ICI"</span>;<br/>
+<span class="key">const</span> <span class="val">DEMO_MODE</span>         = <span class="replace">true</span>;<br/><br/>
+<span class="comment">// Après (vos vraies valeurs) :</span><br/>
+<span class="key">const</span> <span class="val">SUPABASE_URL</span>      = <span class="replace">"https://abcdefgh.supabase.co"</span>;<br/>
+<span class="key">const</span> <span class="val">SUPABASE_ANON_KEY</span> = <span class="replace">"eyJhbGc..."</span>; <span class="comment">// votre clé longue</span><br/>
+<span class="key">const</span> <span class="val">DEMO_MODE</span>         = <span class="replace">false</span>; <span class="comment">// ← changer true en false</span>
+            </div>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-dot" style="background:#0891b2;">4</div>
+          <div class="step-content">
+            <strong>Activer l'authentification dans Supabase</strong>
+            <p>Dans Supabase → <strong>"Authentication"</strong> → <strong>"Providers"</strong> → Assurez-vous que <strong>"Email"</strong> est activé (toggle vert).</p>
+          </div>
+        </li>
+      </ul>
+      <div class="alert warning" style="margin-top:16px;">
+        <span class="alert-icon">⚠️</span>
+        <div><strong>Important :</strong> Ne partagez jamais votre clé Supabase publiquement. La clé "anon" est faite pour être dans le code client — c'est normal et sécurisé.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ETAPE 3 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-num" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);">3</div>
+      <div>
+        <div class="card-title">Mettre le Site en Ligne (GitHub Pages)</div>
+        <div class="card-sub">Votre site aura une adresse publique gratuite</div>
+      </div>
+      <div class="card-time">⏱️ 20 min</div>
+    </div>
+    <div class="card-body">
+      <ul class="step-list">
+        <li class="step-item">
+          <div class="step-dot" style="background:#1e3a8a;">1</div>
+          <div class="step-content">
+            <strong>Créer un nouveau dépôt GitHub</strong>
+            <p>Sur <a href="https://github.com" target="_blank">github.com</a> → Cliquez le <strong>"+"</strong> en haut à droite → <strong>"New repository"</strong>.<br/>
+            Nom : <code>espace-cours</code> → Cochez <strong>"Public"</strong> → Cliquez <strong>"Create repository"</strong>.</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-dot" style="background:#059669;">2</div>
+          <div class="step-content">
+            <strong>Uploader vos fichiers</strong>
+            <p>Dans votre dépôt GitHub → Cliquez <strong>"uploading an existing file"</strong> → Glissez-déposez TOUS les fichiers de votre dossier <code>mon_site_enseignant</code> → Cliquez <strong>"Commit changes"</strong>.</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-dot" style="background:#d97706;">3</div>
+          <div class="step-content">
+            <strong>Activer GitHub Pages</strong>
+            <p>Dans votre dépôt → Onglet <strong>"Settings"</strong> → Section <strong>"Pages"</strong> → Source : <strong>"Deploy from branch"</strong> → Branch : <strong>"main"</strong> → Cliquez <strong>"Save"</strong>.<br/>
+            ⏳ Attendez 2-3 minutes → Votre site sera en ligne à :<br/>
+            <code style="color:#1d4ed8;">https://VOTRE_NOM.github.io/espace-cours/</code></p>
+          </div>
+        </li>
+      </ul>
+      <div class="alert success" style="margin-top:16px;">
+        <span class="alert-icon">🎉</span>
+        <div>Félicitations ! Votre site est maintenant accessible depuis n'importe quel téléphone, tablette ou ordinateur dans le monde !</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ETAPE 4 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-num" style="background:linear-gradient(135deg,#dc2626,#ef4444);">4</div>
+      <div>
+        <div class="card-title">Ajouter vos Élèves</div>
+        <div class="card-sub">Invitez chaque élève par email — système fermé, sur invitation uniquement</div>
+      </div>
+      <div class="card-time">⏱️ 5 min/élève</div>
+    </div>
+    <div class="card-body">
+      <ul class="step-list">
+        <li class="step-item">
+          <div class="step-dot" style="background:#1e3a8a;">1</div>
+          <div class="step-content">
+            <strong>Aller dans Supabase → Authentication → Users</strong>
+            <p>Dans votre projet Supabase → Menu gauche : <strong>"Authentication"</strong> → <strong>"Users"</strong>.</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-dot" style="background:#059669;">2</div>
+          <div class="step-content">
+            <strong>Inviter un élève</strong>
+            <p>Cliquez <strong>"Invite user"</strong> → Entrez l'email de l'élève → Cliquez <strong>"Send invitation"</strong>.<br/>
+            L'élève recevra un email pour créer son mot de passe. Ensuite il pourra se connecter à votre site.</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-dot" style="background:#d97706;">3</div>
+          <div class="step-content">
+            <strong>Ajouter le nom dans les métadonnées (optionnel)</strong>
+            <p>Après avoir invité l'élève → Cliquez sur son email → <strong>"Edit user"</strong> → Dans "Raw user meta data" ajoutez :<br/>
+            <code>{"name": "Ahmed Ben Ali", "classe": "6ème A"}</code></p>
+          </div>
+        </li>
+      </ul>
+      <div class="alert tip" style="margin-top:16px;">
+        <span class="alert-icon">💡</span>
+        <div>Aucun élève ne peut s'inscrire seul. Seulement les élèves que vous invitez peuvent accéder au site. C'est un système totalement sécurisé.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ETAPE 5: Ajouter des vidéos -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-num" style="background:linear-gradient(135deg,#0891b2,#22d3ee);">5</div>
+      <div>
+        <div class="card-title">Ajouter vos Vidéos de Cours</div>
+        <div class="card-sub">Uploadez sur YouTube et ajoutez le lien dans config.js</div>
+      </div>
+      <div class="card-time">⏱️ 10 min/vidéo</div>
+    </div>
+    <div class="card-body">
+      <ul class="step-list">
+        <li class="step-item">
+          <div class="step-dot" style="background:#1e3a8a;">1</div>
+          <div class="step-content">
+            <strong>Enregistrer votre cours</strong>
+            <p>Utilisez votre téléphone, tablette ou ordinateur pour enregistrer votre cours vidéo.</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-dot" style="background:#dc2626;">2</div>
+          <div class="step-content">
+            <strong>Uploader sur YouTube comme "Non répertorié"</strong>
+            <p>Allez sur <a href="https://studio.youtube.com" target="_blank">studio.youtube.com</a> → <strong>"Créer"</strong> → <strong>"Importer une vidéo"</strong>.<br/>
+            Dans <strong>"Visibilité"</strong>, choisissez <strong>"Non répertorié"</strong> (la vidéo ne sera pas trouvable par Google, seulement via votre site).</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-dot" style="background:#059669;">3</div>
+          <div class="step-content">
+            <strong>Copier l'ID YouTube</strong>
+            <p>Dans l'URL de votre vidéo : <code>https://youtube.com/watch?v=<strong style="color:#dc2626;">dQw4w9WgXcQ</strong></code><br/>
+            Copiez la partie après <code>v=</code> (les lettres en rouge ci-dessus).</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-dot" style="background:#d97706;">4</div>
+          <div class="step-content">
+            <strong>Ajouter dans config.js</strong>
+            <p>Ouvrez <code>config.js</code> → Dans le tableau <code>VIDEOS</code> → Remplacez <code>youtubeId: ""</code> par votre ID :<br/>
+            Ou ajoutez une nouvelle vidéo en copiant un bloc existant.</p>
+            <div class="code-block">
+<span class="comment">// Exemple d'une vidéo dans config.js :</span><br/>
+{<br/>
+&nbsp;&nbsp;<span class="key">id:</span> <span class="val">10</span>,<br/>
+&nbsp;&nbsp;<span class="key">title:</span>    <span class="replace">"Les Fractions — Exercices"</span>,<br/>
+&nbsp;&nbsp;<span class="key">subject:</span>  <span class="replace">"math"</span>,  <span class="comment">// math / arabe / francais / sciences / etc.</span><br/>
+&nbsp;&nbsp;<span class="key">duration:</span> <span class="replace">"25 min"</span>,<br/>
+&nbsp;&nbsp;<span class="key">date:</span>     <span class="replace">"1 Juin 2026"</span>,<br/>
+&nbsp;&nbsp;<span class="key">youtubeId:</span><span class="replace">"votre_id_ici"</span>,  <span class="comment">// ← votre ID YouTube</span><br/>
+&nbsp;&nbsp;<span class="key">description:</span><span class="replace">"Description du cours"</span>,<br/>
+&nbsp;&nbsp;<span class="key">views:</span> <span class="val">0</span>,<br/>
+},
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ETAPE 6: Faire un live -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-num" style="background:linear-gradient(135deg,#dc2626,#ef4444);">6</div>
+      <div>
+        <div class="card-title">Faire un Cours en Direct (Live)</div>
+        <div class="card-sub">Deux lignes à changer dans config.js avant chaque live</div>
+      </div>
+      <div class="card-time">⏱️ 5 min</div>
+    </div>
+    <div class="card-body">
+      <ul class="step-list">
+        <li class="step-item">
+          <div class="step-dot" style="background:#dc2626;">1</div>
+          <div class="step-content">
+            <strong>Démarrer un live YouTube</strong>
+            <p>Allez sur <a href="https://studio.youtube.com" target="_blank">studio.youtube.com</a> → <strong>"Créer"</strong> → <strong>"Démarrer un direct"</strong> → Choisissez <strong>"Non répertorié"</strong> → Copiez l'ID YouTube du live.</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-dot" style="background:#1e3a8a;">2</div>
+          <div class="step-content">
+            <strong>Modifier 3 lignes dans config.js</strong>
+            <div class="code-block">
+<span class="key">const</span> <span class="val">LIVE_NOW</span>        = <span class="replace">true</span>;  <span class="comment">// ← changer false en true</span><br/>
+<span class="key">const</span> <span class="val">LIVE_YOUTUBE_ID</span> = <span class="replace">"votre_id_live"</span>;  <span class="comment">// ← ID du live</span><br/>
+<span class="key">const</span> <span class="val">LIVE_SUBJECT</span>    = <span class="replace">"math"</span>;  <span class="comment">// ← matière du cours</span><br/>
+<span class="key">const</span> <span class="val">LIVE_TOPIC</span>      = <span class="replace">"Les Fractions"</span>;  <span class="comment">// ← thème</span>
+            </div>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-dot" style="background:#059669;">3</div>
+          <div class="step-content">
+            <strong>Mettre à jour sur GitHub</strong>
+            <p>Sur github.com → Votre dépôt → Cliquez sur <code>config.js</code> → Icône crayon ✏️ → Modifiez → <strong>"Commit changes"</strong>.<br/>
+            Le site se met à jour en 2 minutes. Les élèves verront le live automatiquement !</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-dot" style="background:#d97706;">4</div>
+          <div class="step-content">
+            <strong>Après le cours, remettre LIVE_NOW à false</strong>
+            <p>Même procédure → Remettez <code>LIVE_NOW = false</code> dans config.js → Commitez.</p>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Checklist finale -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-num" style="background:linear-gradient(135deg,#059669,#34d399);">✅</div>
+      <div>
+        <div class="card-title">Checklist — Avant de partager le site à vos élèves</div>
+        <div class="card-sub">Cochez chaque étape complétée</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <ul class="checklist" id="checklist">
+        <li><div class="check-box" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div> Compte GitHub créé</li>
+        <li><div class="check-box" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div> Compte Supabase créé avec un projet</li>
+        <li><div class="check-box" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div> SUPABASE_URL et SUPABASE_ANON_KEY copiés dans config.js</li>
+        <li><div class="check-box" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div> DEMO_MODE changé à false dans config.js</li>
+        <li><div class="check-box" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div> Fichiers uploadés sur GitHub</li>
+        <li><div class="check-box" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div> GitHub Pages activé → site en ligne</li>
+        <li><div class="check-box" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div> Au moins 1 vidéo ajoutée dans config.js avec un vrai ID YouTube</li>
+        <li><div class="check-box" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div> Au moins 1 élève invité via Supabase → Authentication → Users</li>
+        <li><div class="check-box" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div> Test de connexion réussi avec le compte d'un élève</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Costs table -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-num" style="background:#059669;">💰</div>
+      <div>
+        <div class="card-title">Résumé des Coûts</div>
+        <div class="card-sub">Ce site ne vous coûte rien pour commencer</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <table>
+        <tr><th>Service</th><th>Utilisation</th><th>Coût</th></tr>
+        <tr><td>GitHub Pages</td><td>Hébergement de votre site</td><td style="color:#059669;font-weight:700;">GRATUIT</td></tr>
+        <tr><td>Supabase</td><td>Base de données + comptes élèves</td><td style="color:#059669;font-weight:700;">GRATUIT (50 000 utilisateurs)</td></tr>
+        <tr><td>YouTube</td><td>Stockage vidéos + live</td><td style="color:#059669;font-weight:700;">GRATUIT illimité</td></tr>
+        <tr><td>Nom de domaine (optionnel)</td><td>ex: monsite.com au lieu de github.io</td><td style="color:#d97706;font-weight:700;">~10 €/an chez OVH</td></tr>
+        <tr style="background:#1e3a8a;"><td style="color:white;font-weight:700;">TOTAL</td><td style="color:white;">Pour commencer</td><td style="color:#86efac;font-weight:700;">0 € / mois</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>Site créé avec <strong>Antigravity AI</strong> 🤖 — Pour toute question, retournez dans le chat !</p>
+    <p style="margin-top:8px;">
+      <a href="index.html">🔐 Connexion</a> &nbsp;·&nbsp;
+      <a href="accueil.html">🏠 Accueil</a> &nbsp;·&nbsp;
+      <a href="videos.html">🎬 Vidéos</a> &nbsp;·&nbsp;
+      <a href="direct.html">📡 Direct</a>
+    </p>
+  </div>
+
+</div><!-- end page -->
+</body>
+</html>

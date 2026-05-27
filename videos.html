@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vidéos — Espace Cours</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="lang.js"></script>
+  <style>
+    .toolbar {
+      display: flex; align-items: center; gap: 14px;
+      flex-wrap: wrap; margin-bottom: 24px;
+    }
+    .toolbar .search-bar { flex: 1; min-width: 220px; }
+
+    .videos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    @media (max-width: 900px) { .videos-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 500px) { .videos-grid { grid-template-columns: 1fr; } }
+
+    /* Page header */
+    .page-header {
+      background: linear-gradient(135deg, #1e3a8a, #4c1d95);
+      border-radius: var(--radius-lg);
+      padding: 28px 36px; color: white;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px; position: relative; overflow: hidden;
+    }
+    .page-header::before {
+      content: '🎬';
+      position: absolute; right: 32px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 80px; opacity: 0.12;
+    }
+    .page-header h1 { font-size: 24px; font-weight: 900; margin-bottom: 6px; }
+    .page-header p  { font-size: 14px; opacity: 0.75; }
+
+    /* Video count label */
+    .result-count {
+      font-size: 13px; color: var(--text-muted); margin-bottom: 16px;
+      padding: 0 2px;
+    }
+    .result-count strong { color: var(--primary); }
+
+    /* Modal info row */
+    .modal-video-meta {
+      display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px;
+    }
+    .modal-desc {
+      font-size: 14px; color: var(--text-muted); margin-top: 10px;
+      line-height: 1.7; background: var(--bg); border-radius: 10px;
+      padding: 12px 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══ NAVBAR ══ -->
+  <nav class="navbar">
+    <a href="accueil.html" class="logo">
+      <div class="logo-icon">🎓</div>
+      <div class="logo-texts">
+        <div class="logo-name">Espace Cours</div>
+        <div class="logo-sub">6ème Année</div>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="accueil.html" class="nav-link"><span class="nav-icon">🏠</span> <span data-i18n="nav-home">Accueil</span></a>
+      <a href="videos.html"  class="nav-link active"><span class="nav-icon">🎬</span> <span data-i18n="nav-videos">Vidéos</span></a>
+      <a href="direct.html"  class="nav-link"><span class="nav-icon">📡</span> <span data-i18n="nav-direct">Direct</span></a>
+    </div>
+    <div class="navbar-right">
+      <a href="direct.html" class="live-badge" id="nav-live" style="display:none;">
+        <div class="live-dot"></div> <span data-i18n="nav-live-label">EN DIRECT</span>
+      </a>
+      <button class="lang-toggle-btn" id="lang-toggle-btn" onclick="toggleLang()" title="التبديل إلى العربية">
+        <span class="lt-flag">🇹🇳</span><span class="lt-text">AR</span>
+      </button>
+      <div class="user-pill">
+        <div class="user-avatar" id="nav-avatar">?</div>
+        <div class="user-info">
+          <div class="user-name"  id="nav-name">…</div>
+          <div class="user-class" id="nav-class">…</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logoutUser()">🚪 <span data-i18n="nav-logout">Déconnexion</span></button>
+    </div>
+  </nav>
+
+  <!-- ══ PAGE CONTENT ══ -->
+  <div class="page-wrapper fade-in">
+
+    <!-- Page header -->
+    <div class="page-header">
+      <div>
+        <h1 data-i18n="videos-page-title">📚 Tous les Cours Vidéo</h1>
+        <p data-i18n="videos-page-subtitle">Retrouvez toutes vos leçons enregistrées, classées par type</p>
+        <p style="font-family:'Tajawal',sans-serif;direction:rtl;margin-top:4px;opacity:0.7;" data-i18n="videos-page-arabic">
+          جميع الدروس المسجّلة — مصنّفة حسب النوع
+        </p>
+      </div>
+    </div>
+
+    <!-- Toolbar: Search + Filters -->
+    <div class="toolbar">
+      <div class="search-bar">
+        <span class="si">🔍</span>
+        <input type="text" id="search-input" data-i18n="search-ph" placeholder="Rechercher un cours..." oninput="filterVideos()" />
+      </div>
+    </div>
+
+    <!-- Filter tabs -->
+    <div class="filter-tabs" id="filter-tabs" style="margin-bottom:20px;">
+      <button class="filter-tab active" onclick="setFilter('all', this)" data-i18n="filter-all">🎯 الكل — Tout</button>
+      <!-- Type tabs added by JS -->
+    </div>
+
+    <!-- Result count -->
+    <div class="result-count" id="result-count"></div>
+
+    <!-- Video grid -->
+    <div class="videos-grid" id="videos-grid">
+      <!-- Filled by JS -->
+    </div>
+
+    <!-- Empty state -->
+    <div class="empty-state" id="empty-state" style="display:none;">
+      <div class="empty-icon">🔍</div>
+      <div class="empty-title">Aucun cours trouvé</div>
+      <div class="empty-desc">Essayez un autre mot-clé ou sélectionnez une autre matière.</div>
+    </div>
+
+  </div><!-- end page-wrapper -->
+
+  <!-- ══ VIDEO MODAL ══ -->
+  <div class="modal-overlay" id="video-modal" onclick="closeModal(event)">
+    <div class="modal slide-up" style="max-width:860px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title"  id="modal-title">Titre du cours</div>
+          <div class="modal-subtitle" id="modal-subject">Matière</div>
+        </div>
+        <button class="modal-close" onclick="closeVideoModal()" title="Fermer">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- Video frame -->
+        <div class="video-frame" id="modal-frame">
+          <!-- Filled by JS -->
+        </div>
+
+        <!-- Video meta badges -->
+        <div class="modal-video-meta" id="modal-meta"></div>
+
+        <!-- Description -->
+        <div class="modal-desc" id="modal-desc"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    // ── Language init ──
+    initLang();
+
+    // ── Auth ──
+    const user = requireLogin();
+    if (user) {
+      document.getElementById('nav-avatar').textContent = getInitials(user.name);
+      document.getElementById('nav-name').textContent   = user.name;
+      document.getElementById('nav-class').textContent  = user.classe || '6ème Année';
+    }
+    if (LIVE_NOW) document.getElementById('nav-live').style.display = 'flex';
+
+    // ── State ──
+    let currentFilter = 'all';
+    let currentSearch = '';
+
+    // ── Build type filter tabs ──
+    const filterTabs = document.getElementById('filter-tabs');
+    Object.entries(TYPES).forEach(([key, t]) => {
+      const count = VIDEOS.filter(v => v.type === key).length;
+      if (count === 0) return;
+      const btn = document.createElement('button');
+      btn.className = 'filter-tab';
+      btn.style.fontFamily = "'Tajawal', sans-serif";
+      btn.style.fontSize = '15px';
+      btn.innerHTML = `${t.icon} ${t.label} <span style="opacity:0.6;font-size:11px;font-family:'Inter',sans-serif;">(${count})</span>`;
+      btn.onclick = () => setFilter(key, btn);
+      filterTabs.appendChild(btn);
+    });
+
+    // ── Set active filter ──
+    function setFilter(key, btn) {
+      currentFilter = key;
+      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      renderVideos();
+    }
+
+    // ── Search input ──
+    function filterVideos() {
+      currentSearch = document.getElementById('search-input').value.toLowerCase();
+      renderVideos();
+    }
+
+    // ── Render videos ──
+    function renderVideos() {
+      const grid = document.getElementById('videos-grid');
+      const empty = document.getElementById('empty-state');
+      const countEl = document.getElementById('result-count');
+
+      const filtered = VIDEOS.filter(v => {
+        const matchFilter = currentFilter === 'all' || v.type === currentFilter;
+        const matchSearch = !currentSearch ||
+          v.title.toLowerCase().includes(currentSearch) ||
+          v.description.toLowerCase().includes(currentSearch) ||
+          (TYPES[v.type]?.label || '').includes(currentSearch);
+        return matchFilter && matchSearch;
+      });
+
+      grid.innerHTML = '';
+
+      if (filtered.length === 0) {
+        empty.style.display = 'block';
+        grid.style.display = 'none';
+        countEl.innerHTML = '';
+      } else {
+        empty.style.display = 'none';
+        grid.style.display = 'grid';
+        countEl.innerHTML = `<strong>${filtered.length}</strong> cours trouvé${filtered.length > 1 ? 's' : ''}`;
+
+        filtered.forEach(v => {
+          const t = TYPES[v.type] || {};
+          grid.innerHTML += `
+            <div class="video-card" onclick="openVideoModal(${v.id})">
+              <div class="video-thumb" style="background:${t.gradient || '#1e3a8a'};">
+                <div class="video-thumb-icon">${t.icon || '🎬'}</div>
+                <div class="video-duration">${v.duration}</div>
+              </div>
+              <div class="video-body">
+                <div class="video-meta">
+                  <span class="badge" style="background:${t.color}22;color:${t.color};font-family:'Tajawal',sans-serif;font-size:13px;">${t.icon || ''} ${t.label || v.type}</span>
+                </div>
+                <div class="video-title" style="font-family:'Tajawal',sans-serif;direction:rtl;font-size:15px;">${v.title}</div>
+                <div class="video-desc" style="direction:rtl;font-family:'Tajawal',sans-serif;">${v.description}</div>
+                <div class="video-footer">
+                  <span>📅 ${v.date}</span>
+                  <span class="video-views">👁️ ${v.views} vues</span>
+                </div>
+              </div>
+            </div>`;
+        });
+      }
+    }
+
+    // ── Open video modal ──
+    function openVideoModal(id) {
+      const video = VIDEOS.find(v => v.id === id);
+      if (!video) return;
+      const t = TYPES[video.type] || {};
+
+      document.getElementById('modal-title').textContent   = video.title;
+      document.getElementById('modal-subject').textContent = `${t.icon || ''} ${t.label || video.type} — ${video.duration} — ${video.date}`;
+
+      // Video frame
+      const frame = document.getElementById('modal-frame');
+      if (video.youtubeId && video.youtubeId.length > 5 && !video.youtubeId.startsWith('VOTRE')) {
+        frame.innerHTML = `
+          <iframe
+            src="https://www.youtube-nocookie.com/embed/${video.youtubeId}?rel=0&autoplay=1"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+          ></iframe>`;
+      } else {
+        frame.innerHTML = `
+          <div class="video-no-id" style="background:${t.gradient||'#1e3a8a'};">
+            <div class="no-id-icon">${t.icon || '🎬'}</div>
+            <p style="color:white;font-weight:700;font-size:16px;margin-bottom:8px;font-family:'Tajawal',sans-serif;direction:rtl;">${video.title}</p>
+            <p style="color:rgba(255,255,255,0.7);">
+              ➡️ Pour afficher cette vidéo, ouvrez <strong>config.js</strong><br/>
+              et remplacez <code>youtubeId: ""</code><br/>
+              par l'ID YouTube de votre vidéo.
+            </p>
+          </div>`;
+      }
+
+      // Meta badges
+      document.getElementById('modal-meta').innerHTML = `
+        <span class="badge" style="background:${t.color}22;color:${t.color};font-family:'Tajawal',sans-serif;">${t.icon} ${t.label}</span>
+        <span class="badge badge-gray">⏱️ ${video.duration}</span>
+        <span class="badge badge-gray">📅 ${video.date}</span>
+        <span class="badge badge-green">👁️ ${video.views} vues</span>`;
+
+      // Description
+      document.getElementById('modal-desc').innerHTML =
+        `<strong style="font-family:'Tajawal',sans-serif;">📝 الوصف :</strong> <span style="font-family:'Tajawal',sans-serif;direction:rtl;display:block;margin-top:4px;">${video.description}</span>`;
+
+      document.getElementById('video-modal').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    // ── Close modal ──
+    function closeVideoModal() {
+      document.getElementById('video-modal').classList.remove('open');
+      document.getElementById('modal-frame').innerHTML = ''; // stop video
+      document.body.style.overflow = '';
+    }
+    function closeModal(e) {
+      if (e.target === document.getElementById('video-modal')) closeVideoModal();
+    }
+
+    // Keyboard close
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeVideoModal();
+    });
+
+    // ── Auto-open video from URL param ──
+    const params = new URLSearchParams(window.location.search);
+    const playId = parseInt(params.get('play'));
+    const filterParam = params.get('type');
+
+    // First render all videos
+    renderVideos();
+
+    // Auto-apply type filter from URL
+    if (filterParam && TYPES[filterParam]) {
+      const tabs = document.querySelectorAll('.filter-tab');
+      tabs.forEach(t => {
+        if (t.textContent.includes(TYPES[filterParam].label)) {
+          setFilter(filterParam, t);
+        }
+      });
+    }
+
+    // Auto-open video from URL
+    if (playId) {
+      setTimeout(() => openVideoModal(playId), 400);
+    }
+  </script>
+</body>
+</html>

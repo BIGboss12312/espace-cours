@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cours en Direct — Espace Cours</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="lang.js"></script>
+  <style>
+    /* ── Direct page layout ── */
+    .direct-layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .direct-layout { grid-template-columns: 1fr; }
+    }
+
+    /* Status bar above video */
+    .status-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px; border-radius: 12px; margin-bottom: 14px;
+    }
+    .status-bar.online {
+      background: linear-gradient(135deg, #064e3b, #059669);
+      color: white;
+    }
+    .status-bar.offline {
+      background: #f8faff; border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    .status-left { display: flex; align-items: center; gap: 12px; }
+    .status-icon { font-size: 24px; }
+    .status-title { font-size: 16px; font-weight: 700; }
+    .status-sub   { font-size: 13px; opacity: 0.8; margin-top: 2px; }
+
+    /* Sidebar cards */
+    .sidebar-card { padding: 22px; margin-bottom: 16px; }
+    .sidebar-card h3 {
+      font-size: 15px; font-weight: 700; color: var(--text);
+      margin-bottom: 16px; padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* Tips list */
+    .tips-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .tips-list li {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: 13px; color: var(--text2); line-height: 1.5;
+    }
+    .tip-icon { font-size: 18px; flex-shrink: 0; }
+
+    /* Info card */
+    .info-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .info-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .info-label { color: var(--text-muted); font-weight: 500; }
+    .info-value { color: var(--text); font-weight: 700; }
+
+    /* Offline content */
+    .offline-message {
+      background: linear-gradient(135deg, #0f172a, #1e1b4b);
+      border-radius: var(--radius-lg);
+      aspect-ratio: 16/9;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; color: white; padding: 40px;
+      position: relative; overflow: hidden;
+    }
+    .offline-message::before {
+      content: '';
+      position: absolute;
+      width: 280px; height: 280px;
+      background: rgba(99,102,241,0.15);
+      border-radius: 50%; top: -80px; right: -80px;
+      filter: blur(40px);
+    }
+    .offline-message::after {
+      content: '';
+      position: absolute;
+      width: 200px; height: 200px;
+      background: rgba(59,130,246,0.1);
+      border-radius: 50%; bottom: -60px; left: -40px;
+      filter: blur(40px);
+    }
+    .offline-content { position: relative; z-index: 1; }
+    .offline-anim {
+      font-size: 72px;
+      animation: float 4s ease-in-out infinite;
+      margin-bottom: 20px;
+    }
+    .offline-title { font-size: 26px; font-weight: 900; margin-bottom: 10px; }
+    .offline-desc  { font-size: 15px; opacity: 0.7; max-width: 360px; line-height: 1.7; margin-bottom: 24px; }
+    .offline-next  {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 14px; padding: 16px 24px; display: inline-block;
+    }
+    .offline-next-label { font-size: 12px; opacity: 0.6; margin-bottom: 4px; letter-spacing: 1px; text-transform: uppercase; }
+    .offline-next-text  { font-size: 17px; font-weight: 700; }
+
+    /* Live stream container */
+    .live-container {
+      border-radius: var(--radius-lg); overflow: hidden;
+      aspect-ratio: 16/9; background: #000;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .live-container iframe { width: 100%; height: 100%; border: none; display: block; }
+
+    /* Live info banner */
+    .live-info-banner {
+      background: linear-gradient(135deg, #7f1d1d, #dc2626);
+      border-radius: 12px; padding: 14px 20px;
+      display: flex; align-items: center; gap: 14px;
+      color: white; margin-top: 14px;
+    }
+    .live-pulse-big {
+      width: 16px; height: 16px; background: white; border-radius: 50%;
+      animation: live-pulse 1.5s ease-in-out infinite; flex-shrink: 0;
+    }
+    .live-info-text { font-size: 15px; font-weight: 700; }
+    .live-info-sub  { font-size: 13px; opacity: 0.8; }
+
+    /* Schedule in sidebar */
+    .sched-item {
+      display: flex; gap: 14px; align-items: center;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+    }
+    .sched-item:last-child { border-bottom: none; }
+    .sched-icon  { font-size: 24px; flex-shrink: 0; }
+    .sched-info  { flex: 1; }
+    .sched-topic { font-size: 14px; font-weight: 600; color: var(--text); }
+    .sched-date  { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .sched-time  { font-size: 13px; font-weight: 700; color: var(--primary); white-space: nowrap; }
+
+    /* How to join guide */
+    .steps-guide { display: flex; flex-direction: column; gap: 12px; }
+    .step-row {
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .step-num {
+      width: 28px; height: 28px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
+      border-radius: 50%; color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700;
+    }
+    .step-text { font-size: 13px; color: var(--text2); line-height: 1.5; padding-top: 4px; }
+  </style>
+</head>
+<body>
+
+  <!-- ══ NAVBAR ══ -->
+  <nav class="navbar">
+    <a href="accueil.html" class="logo">
+      <div class="logo-icon">🎓</div>
+      <div class="logo-texts">
+        <div class="logo-name">Espace Cours</div>
+        <div class="logo-sub">6ème Année</div>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="accueil.html" class="nav-link"><span class="nav-icon">🏠</span> <span data-i18n="nav-home">Accueil</span></a>
+      <a href="videos.html"  class="nav-link"><span class="nav-icon">🎬</span> <span data-i18n="nav-videos">Vidéos</span></a>
+      <a href="direct.html"  class="nav-link active"><span class="nav-icon">📡</span> <span data-i18n="nav-direct">Direct</span></a>
+    </div>
+    <div class="navbar-right">
+      <button class="lang-toggle-btn" id="lang-toggle-btn" onclick="toggleLang()" title="التبديل إلى العربية">
+        <span class="lt-flag">🇹🇳</span><span class="lt-text">AR</span>
+      </button>
+      <div class="user-pill">
+        <div class="user-avatar" id="nav-avatar">?</div>
+        <div class="user-info">
+          <div class="user-name"  id="nav-name">…</div>
+          <div class="user-class" id="nav-class">…</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logoutUser()">🚪 <span data-i18n="nav-logout">Déconnexion</span></button>
+    </div>
+  </nav>
+
+  <!-- ══ PAGE CONTENT ══ -->
+  <div class="page-wrapper fade-in">
+
+    <div class="direct-layout">
+
+      <!-- ── LEFT: Main video area ── -->
+      <div>
+
+        <!-- Status bar -->
+        <div class="status-bar" id="status-bar">
+          <!-- Filled by JS -->
+        </div>
+
+        <!-- Video or offline screen -->
+        <div id="main-screen">
+          <!-- Filled by JS -->
+        </div>
+
+      </div>
+
+      <!-- ── RIGHT: Sidebar ── -->
+      <div>
+
+        <!-- Current/Next class info -->
+        <div class="card sidebar-card" id="class-info-card">
+          <!-- Filled by JS -->
+        </div>
+
+        <!-- Upcoming schedule -->
+        <div class="card sidebar-card">
+          <h3>📅 Prochains Cours</h3>
+          <div id="sidebar-schedule">
+            <!-- Filled by JS -->
+          </div>
+        </div>
+
+        <!-- Tips -->
+        <div class="card sidebar-card">
+          <h3>💡 Conseils</h3>
+          <ul class="tips-list">
+            <li><span class="tip-icon">🎧</span> Utilisez des écouteurs pour mieux entendre le professeur</li>
+            <li><span class="tip-icon">📝</span> Préparez votre cahier et un stylo avant le cours</li>
+            <li><span class="tip-icon">📶</span> Vérifiez votre connexion internet avant de rejoindre</li>
+            <li><span class="tip-icon">🔇</span> Coupez votre micro si vous regardez depuis YouTube Live</li>
+            <li><span class="tip-icon">🤚</span> Posez vos questions dans le chat YouTube</li>
+          </ul>
+        </div>
+
+        <!-- All videos shortcut -->
+        <div style="text-align:center; margin-top: 4px;">
+          <a href="videos.html" class="btn btn-outline" style="width:100%;">
+            🎬 Voir tous les cours enregistrés
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div><!-- end page-wrapper -->
+
+  <script src="config.js"></script>
+  <script>
+    // ── Language init ──
+    initLang();
+
+    // ── Auth ──
+    const user = requireLogin();
+    if (user) {
+      document.getElementById('nav-avatar').textContent = getInitials(user.name);
+      document.getElementById('nav-name').textContent   = user.name;
+      document.getElementById('nav-class').textContent  = user.classe || '6ème Année';
+    }
+
+    // ── Build page based on isLiveActive() ──
+    const statusBar   = document.getElementById('status-bar');
+    const mainScreen  = document.getElementById('main-screen');
+    const classCard   = document.getElementById('class-info-card');
+
+    if (isLiveActive()) {
+      // ── ONLINE STATE ──
+      const liveYtId = getLiveYoutubeId();
+      const liveTopic = getLiveTopic();
+      const s = SUBJECTS[LIVE_SUBJECT] || {};
+
+      statusBar.className = 'status-bar online';
+      statusBar.innerHTML = `
+        <div class="status-left">
+          <div class="status-icon">🟢</div>
+          <div>
+            <div class="status-title">Cours en direct — MAINTENANT</div>
+            <div class="status-sub">Votre professeur est en ligne • Rejoignez le cours !</div>
+          </div>
+        </div>
+        <span class="live-badge" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:white;">
+          <div class="live-dot" style="background:white;"></div> EN DIRECT
+        </span>`;
+
+      // Live stream embed
+      mainScreen.innerHTML = `
+        <div class="live-container">
+          <iframe
+            src="https://www.youtube-nocookie.com/embed/${liveYtId || 'dQw4w9WgXcQ'}?autoplay=1&rel=0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+          ></iframe>
+        </div>
+        <div class="live-info-banner">
+          <div class="live-pulse-big"></div>
+          <div>
+            <div class="live-info-text" style="font-family:'Tajawal',sans-serif;">📡 ${liveTopic}</div>
+            <div class="live-info-sub">Le cours est en direct • Posez vos questions dans le chat YouTube</div>
+          </div>
+        </div>`;
+
+      // Class info card
+      classCard.innerHTML = `
+        <h3>📡 Cours en Direct</h3>
+        <div class="info-row">
+          <span class="info-label">Thème</span>
+          <span class="info-value" style="font-family:'Tajawal',sans-serif;">${liveTopic}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Statut</span>
+          <span class="info-value" style="color:var(--green);">🟢 En cours</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Classe</span>
+          <span class="info-value">6ème Année</span>
+        </div>
+        <div style="margin-top:16px;">
+          <div class="steps-guide">
+            <div class="step-row">
+              <div class="step-num">1</div><div class="step-text">Regardez la vidéo ci-dessus</div>
+            </div>
+            <div class="step-row">
+              <div class="step-num">2</div><div class="step-text">Posez vos questions dans le <strong>chat YouTube</strong></div>
+            </div>
+            <div class="step-row">
+              <div class="step-num">3</div><div class="step-text">Notez ce que le professeur écrit au tableau</div>
+            </div>
+          </div>
+        </div>`;
+
+    } else {
+      // ── OFFLINE STATE ──
+      const nextClass = SCHEDULE[0];
+      const nextSubj  = nextClass ? (SUBJECTS[nextClass.subject] || {}) : {};
+
+      statusBar.className = 'status-bar offline';
+      statusBar.innerHTML = `
+        <div class="status-left">
+          <div class="status-icon">⚫</div>
+          <div>
+            <div class="status-title" style="color:var(--text);">Pas de cours en direct pour le moment</div>
+            <div class="status-sub">Le professeur n'est pas encore en ligne</div>
+          </div>
+        </div>
+        <span class="badge badge-gray">HORS LIGNE</span>`;
+
+      mainScreen.innerHTML = `
+        <div class="offline-message">
+          <div class="offline-content">
+            <div class="offline-anim">📡</div>
+            <div class="offline-title">Cours bientôt disponible</div>
+            <div class="offline-desc">
+              Le cours en direct n'a pas encore commencé.<br/>
+              Revenez à l'heure indiquée dans le planning, cette page se mettra à jour automatiquement.
+            </div>
+            ${nextClass ? `
+              <div class="offline-next">
+                <div class="offline-next-label">⏰ Prochain cours</div>
+                <div class="offline-next-text">
+                  ${nextSubj.icon || '📚'} ${nextSubj.label || nextClass.subject}
+                  — ${nextClass.date} à ${nextClass.time}
+                </div>
+              </div>` : ''}
+          </div>
+        </div>
+        <div class="alert alert-info" style="margin-top:14px;">
+          <span class="alert-icon">💡</span>
+          <div>En attendant, vous pouvez regarder les <a href="videos.html" style="color:var(--primary);font-weight:700;">cours vidéo enregistrés</a>.</div>
+        </div>`;
+
+      classCard.innerHTML = `
+        <h3>📅 Prochain Cours Direct</h3>
+        ${nextClass ? `
+          <div class="info-row">
+            <span class="info-label">Matière</span>
+            <span class="info-value">${nextSubj.icon || ''} ${nextSubj.label || nextClass.subject}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Thème</span>
+            <span class="info-value">${nextClass.topic}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Date</span>
+            <span class="info-value">${nextClass.date}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Heure</span>
+            <span class="info-value" style="color:var(--primary);">⏰ ${nextClass.time}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Statut</span>
+            <span class="info-value" style="color:var(--text-muted);">⚫ Pas encore commencé</span>
+          </div>
+          <div class="alert alert-warning" style="margin-top:16px;margin-bottom:0;">
+            <span class="alert-icon">📢</span>
+            <div>Revenez à <strong>${nextClass.time}</strong> le <strong>${nextClass.date}</strong> pour rejoindre le cours en direct !</div>
+          </div>
+        ` : `<p style="color:var(--text-muted);font-size:14px;">Aucun cours planifié pour le moment.</p>`}
+
+        <div style="margin-top:16px;">
+          <h4 style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:12px;">📋 Comment rejoindre un cours direct :</h4>
+          <div class="steps-guide">
+            <div class="step-row">
+              <div class="step-num">1</div>
+              <div class="step-text">Revenez sur cette page à l'heure du cours</div>
+            </div>
+            <div class="step-row">
+              <div class="step-num">2</div>
+              <div class="step-text">La vidéo YouTube apparaîtra automatiquement ici</div>
+            </div>
+            <div class="step-row">
+              <div class="step-num">3</div>
+              <div class="step-text">Regardez le cours et posez vos questions dans le chat</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // ── Sidebar schedule ──
+    const schedEl = document.getElementById('sidebar-schedule');
+    if (SCHEDULE.length === 0) {
+      schedEl.innerHTML = `<p style="font-size:13px;color:var(--text-muted);">Aucun cours planifié.</p>`;
+    } else {
+      SCHEDULE.forEach((item, i) => {
+        const s = SUBJECTS[item.subject] || {};
+        schedEl.innerHTML += `
+          <div class="sched-item">
+            <div class="sched-icon">${item.icon || s.icon || '📅'}</div>
+            <div class="sched-info">
+              <div class="sched-topic">${s.label || item.subject} — ${item.topic}</div>
+              <div class="sched-date">${item.date}</div>
+            </div>
+            <div class="sched-time">${item.time}</div>
+          </div>`;
+      });
+    }
+
+    // ── Auto-refresh every 60 seconds to check if live started ──
+    // (In production with Supabase, you'd use real-time subscriptions)
+    setInterval(() => { window.location.reload(); }, 60000);
+  </script>
+</body>
+</html>

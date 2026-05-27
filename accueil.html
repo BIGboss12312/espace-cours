@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Accueil — Espace Cours</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="lang.js"></script>
+  <style>
+    /* Stats bar */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 32px; }
+    .stat-icon.blue   { background: linear-gradient(135deg,#1e3a8a,#3b82f6); }
+    .stat-icon.red    { background: linear-gradient(135deg,#7f1d1d,#ef4444); }
+    .stat-icon.green  { background: linear-gradient(135deg,#064e3b,#34d399); }
+    .stat-icon.amber  { background: linear-gradient(135deg,#78350f,#fbbf24); }
+
+    /* Welcome hero */
+    .hero-row { display: flex; align-items: center; gap: 20px; }
+    .hero-avatar {
+      width: 70px; height: 70px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.25), rgba(255,255,255,0.1));
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 20px; font-size: 36px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .hero-date { font-size: 13px; opacity: 0.6; margin-top: 4px; }
+
+    /* Subjects */
+    @media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(2,1fr); } }
+    @media (max-width: 600px) { .stats-grid { grid-template-columns: repeat(2,1fr); } }
+
+    /* Recent videos row */
+    .recent-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    @media (max-width: 900px) { .recent-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 500px) { .recent-grid { grid-template-columns: 1fr; } }
+
+    /* Live banner */
+    .live-banner {
+      background: linear-gradient(135deg, #7f1d1d, #dc2626);
+      border-radius: var(--radius);
+      padding: 18px 24px; margin-bottom: 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      color: white; gap: 16px;
+    }
+    .live-banner-left { display: flex; align-items: center; gap: 14px; }
+    .pulse-dot {
+      width: 14px; height: 14px; background: white; border-radius: 50%;
+      animation: live-pulse 1.5s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+    .live-banner-text { font-size: 16px; font-weight: 700; }
+    .live-banner-sub  { font-size: 13px; opacity: 0.8; margin-top: 2px; }
+    /* Teacher admin panel */
+    .prof-panel {
+      background: linear-gradient(135deg,#0f172a,#1e1b4b);
+      border-radius: var(--radius-lg); padding: 24px 28px; margin-bottom: 28px;
+      color: white; border: 1px solid rgba(255,255,255,0.1);
+    }
+    .prof-panel-title {
+      font-size: 17px; font-weight: 800; margin-bottom: 20px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .prof-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media(max-width:700px){ .prof-tools{grid-template-columns:1fr;} }
+    .prof-card {
+      background: rgba(255,255,255,0.07); border-radius: 14px;
+      padding: 18px; border: 1px solid rgba(255,255,255,0.12);
+    }
+    .prof-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: #93c5fd; }
+    .prof-input {
+      width: 100%; padding: 10px 14px; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.08); color: white;
+      font-size: 13px; margin-bottom: 8px; font-family: inherit; box-sizing: border-box;
+    }
+    .prof-input::placeholder { color: rgba(255,255,255,0.35); }
+    .btn-live-start {
+      background: linear-gradient(135deg,#991b1b,#dc2626); color: white; border: none;
+      padding: 11px 20px; border-radius: 10px; font-size: 14px; font-weight: 700;
+      cursor: pointer; width: 100%; margin-top: 4px; transition: all 0.2s;
+    }
+    .btn-live-start:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(220,38,38,0.4); }
+    .btn-live-stop {
+      background: rgba(255,255,255,0.12); color: white; border: 1px solid rgba(255,255,255,0.2);
+      padding: 11px 20px; border-radius: 10px; font-size: 14px; font-weight: 700;
+      cursor: pointer; width: 100%; margin-top: 4px; transition: all 0.2s;
+    }
+    .btn-live-stop:hover { background: rgba(255,255,255,0.2); }
+    .live-status-pill {
+      display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 12px;
+      padding: 8px 12px; border-radius: 8px; background: rgba(255,255,255,0.08);
+      font-weight: 600;
+    }
+    .add-video-steps { list-style:none; display:flex; flex-direction:column; gap:9px; }
+    .add-video-steps li {
+      font-size: 12px; color: rgba(255,255,255,0.75);
+      display: flex; gap: 10px; align-items: flex-start; line-height: 1.5;
+    }
+    .step-n {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 1px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══ NAVBAR ══ -->
+  <nav class="navbar">
+    <a href="accueil.html" class="logo">
+      <div class="logo-icon">🎓</div>
+      <div class="logo-texts">
+        <div class="logo-name">Espace Cours</div>
+        <div class="logo-sub">6ème Année</div>
+      </div>
+    </a>
+
+    <div class="nav-links">
+      <a href="accueil.html" class="nav-link active"><span class="nav-icon">🏠</span> <span data-i18n="nav-home">Accueil</span></a>
+      <a href="videos.html"  class="nav-link"><span class="nav-icon">🎬</span> <span data-i18n="nav-videos">Vidéos</span></a>
+      <a href="direct.html"  class="nav-link"><span class="nav-icon">📡</span> <span data-i18n="nav-direct">Direct</span></a>
+    </div>
+
+    <div class="navbar-right">
+      <!-- Live indicator (shown when LIVE_NOW = true) -->
+      <a href="direct.html" class="live-badge" id="nav-live" style="display:none;">
+        <div class="live-dot"></div> <span data-i18n="nav-live-label">EN DIRECT</span>
+      </a>
+      <!-- Language toggle -->
+      <button class="lang-toggle-btn" id="lang-toggle-btn" onclick="toggleLang()" title="التبديل إلى العربية">
+        <span class="lt-flag">🇹🇳</span><span class="lt-text">AR</span>
+      </button>
+      <div class="user-pill">
+        <div class="user-avatar" id="nav-avatar">?</div>
+        <div class="user-info">
+          <div class="user-name"  id="nav-name">…</div>
+          <div class="user-class" id="nav-class">…</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logoutUser()">🚪 <span data-i18n="nav-logout">Déconnexion</span></button>
+    </div>
+  </nav>
+
+  <!-- ══ PAGE CONTENT ══ -->
+  <div class="page-wrapper fade-in">
+
+    <!-- Live banner (shown when live active) -->
+    <div class="live-banner" id="live-banner" style="display:none;">
+      <div class="live-banner-left">
+        <div class="pulse-dot"></div>
+        <div>
+          <div class="live-banner-text" id="live-banner-text">🔴 Cours en direct maintenant !</div>
+          <div class="live-banner-sub"  id="live-banner-sub">Votre professeur est en ligne</div>
+        </div>
+      </div>
+      <a href="direct.html" class="btn btn-ghost btn-sm">Rejoindre →</a>
+    </div>
+
+    <!-- Teacher Admin Panel (visible only to professeur) -->
+    <div class="prof-panel" id="prof-panel" style="display:none;">
+      <div class="prof-panel-title">
+        🎓 Panneau Professeur
+        <span style="font-size:12px;opacity:0.5;font-weight:400;">— Outils d’administration</span>
+      </div>
+      <div class="prof-tools">
+
+        <!-- Live control card -->
+        <div class="prof-card">
+          <h4>📡 Contrôle du Direct</h4>
+          <div class="live-status-pill" id="prof-live-status">
+            <span id="prof-live-dot">⚫</span>
+            <span id="prof-live-text">Aucun cours en direct</span>
+          </div>
+          <input class="prof-input" id="prof-live-id"
+            placeholder="ID YouTube Live (ex: dQw4w9WgXcQ)" />
+          <input class="prof-input" id="prof-live-topic"
+            placeholder="Thème du cours (ex: الكسور)" />
+          <button class="btn-live-start" id="btn-start-live" onclick="startDemoLive()">
+            🔴 Démarrer le Direct
+          </button>
+          <button class="btn-live-stop" id="btn-stop-live" onclick="stopDemoLive()" style="display:none;">
+            ⬛ Arrêter le Direct
+          </button>
+        </div>
+
+        <!-- Add video card -->
+        <div class="prof-card">
+          <h4>🎬 Publier une Vidéo</h4>
+          <ol class="add-video-steps">
+            <li><div class="step-n">1</div>Enregistrez votre cours (téléphone ou PC)</li>
+            <li><div class="step-n">2</div>Uploadez sur <strong>YouTube Studio</strong> en mode <em>Non répertorié</em></li>
+            <li><div class="step-n">3</div>Copiez l’ID après <code>v=</code> dans l’URL</li>
+            <li><div class="step-n">4</div>Ajoutez la vidéo dans <strong>config.js</strong> → tableau VIDEOS</li>
+            <li><div class="step-n">5</div>Re-uploadez <strong>config.js</strong> sur GitHub → site mis à jour !</li>
+          </ol>
+          <a href="videos.html"
+            style="display:block;margin-top:14px;text-align:center;background:rgba(255,255,255,0.1);
+            color:white;padding:9px;border-radius:9px;font-size:13px;font-weight:600;text-decoration:none;">
+            🎬 Voir toutes les vidéos →
+          </a>
+        </div>
+
+      </div>
+    </div><!-- end prof-panel -->
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-content">
+        <div class="hero-row">
+          <div class="hero-avatar" id="hero-avatar">🎓</div>
+          <div>
+            <div class="hero-greeting">Bienvenue sur votre espace cours 👋</div>
+            <h1 class="hero-title" id="hero-title">Bonjour !</h1>
+            <div class="hero-arabic" id="hero-arabic">مرحباً بك في فضاء الدروس</div>
+            <div class="hero-date" id="hero-date"></div>
+          </div>
+        </div>
+        <div class="hero-actions" style="margin-top:24px;">
+          <a href="videos.html" class="btn btn-ghost btn-sm">🎬 Voir les vidéos</a>
+          <a href="direct.html" class="btn btn-ghost btn-sm">📡 Cours en direct</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon blue">🎬</div>
+        <div class="stat-info">
+          <div class="stat-value" id="stat-videos">0</div>
+          <div class="stat-label">Vidéos de cours</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon red">📚</div>
+        <div class="stat-info">
+          <div class="stat-value">4</div>
+          <div class="stat-label" data-i18n="stat-label-types">Types de cours</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">📅</div>
+        <div class="stat-info">
+          <div class="stat-value" id="stat-next">—</div>
+          <div class="stat-label">Prochain direct</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon amber">👥</div>
+        <div class="stat-info">
+          <div class="stat-value">50+</div>
+          <div class="stat-label">Élèves inscrits</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Subjects Grid -->
+    <div class="section-gap">
+      <div class="section-header">
+        <div class="section-title"><span class="sicon">📐</span> <span data-i18n="section-types">Types de Cours</span></div>
+        <a href="videos.html" class="btn btn-outline btn-sm" data-i18n="btn-see-videos">Voir les vidéos →</a>
+      </div>
+      <div class="grid-5" id="subjects-grid">
+        <!-- Filled by JS -->
+      </div>
+    </div>
+
+    <!-- Recent Videos -->
+    <div class="section-gap">
+      <div class="section-header">
+        <div class="section-title"><span class="sicon">🎬</span> <span data-i18n="section-recent">Cours Récents</span></div>
+        <a href="videos.html" class="btn btn-outline btn-sm" data-i18n="btn-all-courses">Tous les cours →</a>
+      </div>
+      <div class="recent-grid" id="recent-grid">
+        <!-- Filled by JS -->
+      </div>
+    </div>
+
+    <!-- Schedule -->
+    <div class="section-gap">
+      <div class="section-header">
+        <div class="section-title"><span class="sicon">📅</span> <span data-i18n="section-schedule">Prochains Cours en Direct</span></div>
+      </div>
+      <div id="schedule-list">
+        <!-- Filled by JS -->
+      </div>
+    </div>
+
+  </div><!-- end page-wrapper -->
+
+  <script src="config.js"></script>
+  <script>
+    // ── Language init ──
+    initLang();
+
+    // ── Auth check ──
+    const user = requireLogin();
+    if (user) {
+      // Set navbar info
+      document.getElementById('nav-avatar').textContent = getInitials(user.name);
+      document.getElementById('nav-name').textContent   = user.name;
+      document.getElementById('nav-class').textContent  = user.classe || '6ème Année';
+
+      // Hero
+      const firstName = user.name.split(' ')[0];
+      document.getElementById('hero-title').textContent = `Bonjour, ${firstName} ! 👋`;
+      document.getElementById('hero-avatar').textContent = getInitials(user.name);
+      document.getElementById('hero-arabic').textContent = `مرحباً بك يا ${firstName} 🌟`;
+
+      // Date
+      const now = new Date();
+      const days = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+      const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+      document.getElementById('hero-date').textContent =
+        `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+    }
+
+    // ── Live banner ──
+    if (isLiveActive()) {
+      document.getElementById('live-banner').style.display = 'flex';
+      document.getElementById('nav-live').style.display    = 'flex';
+      document.getElementById('live-banner-text').textContent = `🔴 Cours en direct : ${LIVE_TOPIC}`;
+      document.getElementById('live-banner-sub').textContent  = `Thème : ${getLiveTopic()} — Rejoignez maintenant !`;
+    }
+
+    // ── Teacher panel ──
+    if (isTeacher()) {
+      document.getElementById('prof-panel').style.display = 'block';
+      const demoLive = getDemoLive();
+      if (demoLive.active) {
+        document.getElementById('prof-live-dot').textContent  = '🔴';
+        document.getElementById('prof-live-text').textContent = 'Cours en direct actif !';
+        document.getElementById('prof-live-status').style.background = 'rgba(220,38,38,0.25)';
+        document.getElementById('btn-start-live').style.display = 'none';
+        document.getElementById('btn-stop-live').style.display  = 'block';
+        if (demoLive.youtubeId) document.getElementById('prof-live-id').value    = demoLive.youtubeId;
+        if (demoLive.topic)     document.getElementById('prof-live-topic').value = demoLive.topic;
+      }
+    }
+
+    function startDemoLive() {
+      const id    = document.getElementById('prof-live-id').value.trim();
+      const topic = document.getElementById('prof-live-topic').value.trim() || 'الرياضيات';
+      localStorage.setItem('__demo_live', JSON.stringify({ active: true, youtubeId: id, topic }));
+      window.location.reload();
+    }
+    function stopDemoLive() {
+      localStorage.removeItem('__demo_live');
+      window.location.reload();
+    }
+
+    // ── Stats ──
+    document.getElementById('stat-videos').textContent = VIDEOS.length;
+    if (SCHEDULE.length > 0) {
+      const next = SCHEDULE[0];
+      document.getElementById('stat-next').textContent = next.date.split(' ')[0];
+    }
+
+    // ── Types grid (4 categories) ──
+    const subjectsGrid = document.getElementById('subjects-grid');
+    Object.entries(TYPES).forEach(([key, t]) => {
+      const count = VIDEOS.filter(v => v.type === key).length;
+      subjectsGrid.innerHTML += `
+        <a href="videos.html?type=${key}" class="subject-card card-hover">
+          <div class="subject-thumb" style="background:${t.gradient};">
+            <div class="subject-emoji">${t.icon}</div>
+          </div>
+          <div class="subject-body">
+            <div class="subject-name" style="font-size:16px;font-family:'Tajawal',sans-serif;direction:rtl;">${t.label}</div>
+            <div class="subject-arabic" style="font-size:12px;color:#64748b;">${t.subtitle}</div>
+            <div class="subject-count">🎬 ${count} vidéo${count !== 1 ? 's' : ''}</div>
+          </div>
+        </a>`;
+    });
+
+    // ── Recent videos (last 3) ──
+    const recentGrid = document.getElementById('recent-grid');
+    const recent = [...VIDEOS].reverse().slice(0, 3);
+    recent.forEach(v => {
+      const t = TYPES[v.type] || {};
+      recentGrid.innerHTML += `
+        <div class="video-card" onclick="openVideo(${v.id})">
+          <div class="video-thumb" style="background:${t.gradient||'#1e3a8a'};">
+            <div class="video-thumb-icon">${t.icon||'🎬'}</div>
+            <div class="video-duration">${v.duration}</div>
+          </div>
+          <div class="video-body">
+            <div class="video-meta">
+              <span class="badge" style="background:${t.color}22;color:${t.color};font-family:'Tajawal',sans-serif;font-size:12px;">${t.icon||''} ${t.label||v.type}</span>
+            </div>
+            <div class="video-title" style="font-family:'Tajawal',sans-serif;direction:rtl;">${v.title}</div>
+            <div class="video-footer">
+              <span>📅 ${v.date}</span>
+              <span class="video-views">👁️ ${v.views}</span>
+            </div>
+          </div>
+        </div>`;
+    });
+
+    // ── Schedule ──
+    const schedList = document.getElementById('schedule-list');
+    SCHEDULE.forEach(item => {
+      const t = TYPES[item.type] || {};
+      schedList.innerHTML += `
+        <div class="schedule-item">
+          <div class="schedule-icon">${item.icon || t.icon || '📅'}</div>
+          <div class="schedule-info">
+            <div class="schedule-topic" style="font-family:'Tajawal',sans-serif;direction:rtl;">${t.label || item.type} — ${item.topic}</div>
+            <div class="schedule-meta">${item.date}</div>
+          </div>
+          <div class="schedule-time">⏰ ${item.time}</div>
+        </div>`;
+    });
+
+    function openVideo(id) { window.location.href = `videos.html?play=${id}`; }
+  </script>
+</body>
+</html>

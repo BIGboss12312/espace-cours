@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Connexion — Espace Cours</title>
+  <meta name="description" content="Connectez-vous à votre espace cours en ligne." />
+  <link rel="stylesheet" href="style.css" />
+  <!-- Supabase (activé automatiquement quand DEMO_MODE = false) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="lang.js"></script>
+
+  <style>
+    /* ── Login page unique styles ── */
+    body { display: flex; min-height: 100vh; background: #0f172a; }
+
+    /* LEFT PANEL */
+    .left-panel {
+      flex: 1.1;
+      background: linear-gradient(145deg, #0f172a 0%, #1e1b4b 40%, #1e3a8a 100%);
+      display: flex; flex-direction: column; justify-content: space-between;
+      padding: 48px 52px; position: relative; overflow: hidden;
+    }
+    /* Decorative floating blobs */
+    .blob {
+      position: absolute; border-radius: 50%; filter: blur(80px);
+      opacity: 0.25; animation: float 8s ease-in-out infinite;
+    }
+    .blob1 { width: 340px; height: 340px; background: #3b82f6; top: -80px; right: -80px; animation-delay: 0s; }
+    .blob2 { width: 260px; height: 260px; background: #7c3aed; bottom: 40px;  left: -60px; animation-delay: -3s; }
+    .blob3 { width: 180px; height: 180px; background: #0891b2; top: 55%;      right: 40px; animation-delay: -5s; }
+
+    .left-logo {
+      display: flex; align-items: center; gap: 14px; position: relative; z-index: 1;
+    }
+    .left-logo-icon {
+      width: 50px; height: 50px;
+      background: linear-gradient(135deg, #3b82f6, #7c3aed);
+      border-radius: 16px; font-size: 24px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 24px rgba(59,130,246,0.4);
+    }
+    .left-logo-text { color: white; }
+    .left-logo-name { font-size: 20px; font-weight: 800; line-height: 1.1; }
+    .left-logo-sub  { font-size: 12px; opacity: 0.6; font-weight: 400; }
+
+    .left-center { position: relative; z-index: 1; }
+    .left-arabic {
+      font-family: 'Tajawal', sans-serif;
+      font-size: 22px; font-weight: 800;
+      color: white; direction: rtl;
+      margin-bottom: 14px; opacity: 0.9;
+    }
+    .left-heading {
+      font-size: 42px; font-weight: 900;
+      color: white; line-height: 1.15;
+      margin-bottom: 18px;
+    }
+    .left-heading span { color: #60a5fa; }
+    .left-desc {
+      font-size: 15px; color: rgba(255,255,255,0.65);
+      line-height: 1.8; max-width: 380px; margin-bottom: 32px;
+    }
+
+    .feature-list { display: flex; flex-direction: column; gap: 14px; }
+    .feature-item {
+      display: flex; align-items: center; gap: 14px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px; padding: 14px 18px;
+      transition: all 0.25s;
+    }
+    .feature-item:hover { background: rgba(255,255,255,0.1); transform: translateX(4px); }
+    .feature-icon { font-size: 24px; flex-shrink: 0; }
+    .feature-text { color: rgba(255,255,255,0.85); font-size: 14px; font-weight: 500; }
+    .feature-text small { display: block; color: rgba(255,255,255,0.45); font-size: 12px; font-weight: 400; margin-top: 2px; }
+
+    .left-footer {
+      position: relative; z-index: 1;
+      color: rgba(255,255,255,0.35); font-size: 12px;
+    }
+
+    /* RIGHT PANEL */
+    .right-panel {
+      flex: 0.9; background: #f8faff;
+      display: flex; align-items: center; justify-content: center;
+      padding: 48px 52px;
+    }
+    .login-card {
+      width: 100%; max-width: 400px;
+    }
+    .login-header { text-align: center; margin-bottom: 32px; }
+    .login-card-icon {
+      width: 64px; height: 64px;
+      background: linear-gradient(135deg, #1e3a8a, #7c3aed);
+      border-radius: 20px; font-size: 30px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px; box-shadow: 0 10px 28px rgba(29,78,216,0.3);
+    }
+    .login-title    { font-size: 26px; font-weight: 800; color: #0f172a; margin-bottom: 6px; }
+    .login-subtitle { font-size: 14px; color: #64748b; }
+
+    .demo-notice {
+      background: #eff6ff; border: 1px solid #bfdbfe;
+      border-radius: 12px; padding: 12px 16px;
+      font-size: 13px; color: #1e40af;
+      margin-bottom: 24px; line-height: 1.6;
+    }
+    .demo-notice strong { display: block; margin-bottom: 4px; }
+    .demo-creds {
+      display: flex; gap: 8px; flex-direction: column; margin-top: 8px;
+    }
+    .demo-cred {
+      background: white; border-radius: 8px;
+      padding: 6px 12px; font-family: monospace; font-size: 12px;
+      border: 1px solid #bfdbfe; cursor: pointer; transition: all 0.15s;
+      color: #1e40af;
+    }
+    .demo-cred:hover { background: #1d4ed8; color: white; }
+
+    .login-form { display: flex; flex-direction: column; gap: 0; }
+
+    .eye-btn {
+      background: none; border: none; cursor: pointer;
+      font-size: 18px; color: #94a3b8; padding: 2px;
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    }
+    .eye-btn:hover { color: #475569; }
+
+    .login-btn {
+      width: 100%; padding: 14px; margin-top: 8px;
+      border-radius: 14px; font-size: 16px; font-weight: 700;
+      background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+      color: white; border: none; cursor: pointer;
+      transition: all 0.25s;
+      box-shadow: 0 6px 20px rgba(29,78,216,0.35);
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .login-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(29,78,216,0.45); }
+    .login-btn:active { transform: translateY(0); }
+    .login-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+    .login-footer {
+      margin-top: 28px; text-align: center;
+      font-size: 13px; color: #94a3b8;
+    }
+
+    #login-error {
+      display: none;
+      background: #fee2e2; border: 1px solid #fca5a5;
+      border-radius: 12px; padding: 12px 16px;
+      font-size: 13px; color: #7f1d1d;
+      margin-bottom: 16px; white-space: pre-line; line-height: 1.5;
+    }
+    #login-error.show { display: flex; align-items: flex-start; gap: 10px; }
+
+    /* RESPONSIVE */
+    @media (max-width: 900px) {
+      .left-panel { display: none; }
+      .right-panel { flex: 1; padding: 32px 24px; background: #f0f4ff; }
+    }
+    @media (max-width: 480px) {
+      .right-panel { padding: 24px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══ LEFT PANEL ══ -->
+  <div class="left-panel">
+    <div class="blob blob1"></div>
+    <div class="blob blob2"></div>
+    <div class="blob blob3"></div>
+
+    <div class="left-logo">
+      <div class="left-logo-icon">🎓</div>
+      <div class="left-logo-text">
+        <div class="left-logo-name">Espace Cours</div>
+        <div class="left-logo-sub" data-i18n="logo-sub">6ème Année — Programme Tunisien</div>
+      </div>
+    </div>
+
+    <div class="left-center">
+      <div class="feature-list">
+        <div class="feature-item">
+          <div class="feature-icon">📖</div>
+          <div class="feature-text">
+            <span data-i18n="feat-mnadarat">مناضرات</span>
+            <small data-i18n="feat-mnadarat-sub">دروس مشروحة بالتفصيل — شاهد متى شئت</small>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">📝</div>
+          <div class="feature-text">
+            <span data-i18n="feat-imtihane">امتحانات</span>
+            <small data-i18n="feat-imtihane-sub">تصحيح الفروض والامتحانات السابقة</small>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">✏️</div>
+          <div class="feature-text">
+            <span data-i18n="feat-tamareen">تمارين و وضعيات</span>
+            <small data-i18n="feat-tamareen-sub">تدرّب على تمارين متدرجة ومسائل إدماجية</small>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">📡</div>
+          <div class="feature-text">
+            <span data-i18n="feat-direct">بث مباشر</span>
+            <small data-i18n="feat-direct-sub">انضمّ إلى البّث المباشر مع الأستاذ</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="left-footer">
+      <span data-i18n="left-footer">&copy; 2026 Espace Cours Tunisie — Plateforme privée pour élèves</span>
+    </div>
+  </div>
+
+  <!-- ══ RIGHT PANEL ══ -->
+  <div class="right-panel">
+    <div class="login-card fade-in">
+
+      <div class="login-header">
+        <!-- Language toggle -->
+        <div style="text-align:right;margin-bottom:12px;">
+          <button class="lang-toggle-btn" id="lang-toggle-btn" onclick="toggleLang()" title="التبديل إلى العربية" style="margin-left:auto;">
+            <span class="lt-flag">🇹🇳</span><span class="lt-text">AR</span>
+          </button>
+        </div>
+        <div class="login-card-icon">🔐</div>
+        <h2 class="login-title" data-i18n="login-title">Connexion</h2>
+        <p class="login-subtitle" data-i18n="login-subtitle">Entrez vos identifiants pour accéder à vos cours</p>
+      </div>
+
+      <!-- Demo notice -->
+      <div class="demo-notice" id="demo-notice">
+        <strong>🧪 Mode Démo — Choisissez un compte :</strong>
+        <div class="demo-creds">
+          <button class="demo-cred" onclick="fillDemo('prof@demo.tn','prof123')" style="border-left:3px solid #1d4ed8;">
+            🎓 <strong>Professeur</strong> — prof@demo.tn / prof123
+          </button>
+          <button class="demo-cred" onclick="fillDemo('eleve@demo.tn','eleve123')" style="border-left:3px solid #059669;">
+            👤 <strong>Élève</strong> — eleve@demo.tn / eleve123
+          </button>
+        </div>
+      </div>
+
+      <!-- Error message -->
+      <div id="login-error">
+        <span style="font-size:18px;flex-shrink:0;">⚠️</span>
+        <span id="login-error-text"></span>
+      </div>
+
+      <!-- Login form -->
+      <form class="login-form" id="login-form" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label class="form-label" for="email" data-i18n="label-email">📧 Adresse Email</label>
+          <input
+            class="form-input" type="email" id="email" name="email"
+            placeholder="votre.email@example.com"
+            data-i18n="ph-email"
+            autocomplete="email" required
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password" data-i18n="label-password">🔑 Mot de passe</label>
+          <div class="input-wrapper">
+            <input
+              class="form-input" type="password" id="password" name="password"
+              placeholder="••••••••"
+              data-i18n="ph-password"
+              autocomplete="current-password" required
+              style="padding-right:46px;"
+            />
+            <button type="button" class="eye-btn" id="eye-btn" onclick="togglePassword()" title="Afficher/Masquer">👁️</button>
+          </div>
+        </div>
+
+        <button type="submit" class="login-btn" id="login-btn">
+          <span id="btn-text" data-i18n="btn-login">Se connecter</span>
+          <span id="btn-icon">→</span>
+        </button>
+      </form>
+
+      <div class="login-footer">
+        <span data-i18n="login-footer">🔒 Accès réservé aux élèves invités par le professeur</span><br/>
+        <span style="font-family:'Tajawal',sans-serif;direction:rtl;display:block;margin-top:4px;">
+          الدخول مخصص للتلاميذ المسجلين فقط
+        </span>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    // ── Language init ──
+    initLang();
+
+    // Hide demo notice if not in demo mode
+    if (!DEMO_MODE) {
+      document.getElementById('demo-notice').style.display = 'none';
+    }
+
+    // Toggle password visibility
+    function togglePassword() {
+      const input = document.getElementById('password');
+      const btn   = document.getElementById('eye-btn');
+      if (input.type === 'password') {
+        input.type = 'text'; btn.textContent = '🙈';
+      } else {
+        input.type = 'password'; btn.textContent = '👁️';
+      }
+    }
+
+    // Fill demo credentials
+    function fillDemo(email, pass) {
+      document.getElementById('email').value    = email;
+      document.getElementById('password').value = pass;
+      document.getElementById('email').focus();
+    }
+
+    // Show error
+    function showError(msg) {
+      const el = document.getElementById('login-error');
+      document.getElementById('login-error-text').textContent = msg;
+      el.classList.add('show');
+    }
+    function hideError() {
+      document.getElementById('login-error').classList.remove('show');
+    }
+
+    // Handle login
+    async function handleLogin(e) {
+      e.preventDefault();
+      hideError();
+
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const btn      = document.getElementById('login-btn');
+      const btnText  = document.getElementById('btn-text');
+      const btnIcon  = document.getElementById('btn-icon');
+
+      // Loading state
+      btn.disabled = true;
+      btnText.textContent = 'Connexion...';
+      btnIcon.innerHTML = '<div class="spinner"></div>';
+
+      const result = await loginUser(email, password);
+
+      if (result.ok) {
+        btnText.textContent = 'Connecté ! ✅';
+        btnIcon.textContent = '';
+        setTimeout(() => { window.location.href = 'accueil.html'; }, 600);
+      } else {
+        btn.disabled = false;
+        btnText.textContent = 'Se connecter';
+        btnIcon.textContent = '→';
+        showError(result.msg);
+      }
+    }
+
+    // Auto-redirect if already logged in
+    if (getSession()) window.location.href = 'accueil.html';
+  </script>
+</body>
+</html>
