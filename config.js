@@ -21,8 +21,8 @@ const SITE = {
 //   1. Allez sur https://supabase.com → votre projet
 //   2. Settings → API → copiez "Project URL" et "anon public"
 //   3. Collez-les ci-dessous (JAMAIS la clé service_role ou sb_secret !)
-const SUPABASE_URL      = "https://basrddayshfetmcdylrd.supabase.co"; // ✅ URL correcte
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI"; // ← à remplacer par la clé "anon public"
+const SUPABASE_URL      = "https://supabase.com/dashboard/project/basrddayshfetmcdylrd/sql/161bc23d-c81d-48dc-9628-135efd2035ba"; // ✅ URL correcte
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJhc3JkZGF5c2hmZXRtY2R5bHJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4OTkxMTQsImV4cCI6MjA5NTQ3NTExNH0.6MvAoRQNSmSacEs9JQnaQEva1snkN8WiSydYTpZ2HuY"; // ← à remplacer par la clé "anon public"
 
 // --- 🧪 Mode Démonstration ---
 // true  = fonctionne sans Supabase (parfait pour tester)
