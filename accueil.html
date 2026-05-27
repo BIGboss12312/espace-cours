@@ -189,18 +189,20 @@
         <!-- Add video card -->
         <div class="prof-card">
           <h4>🎬 Publier une Vidéo</h4>
-          <ol class="add-video-steps">
-            <li><div class="step-n">1</div>Enregistrez votre cours (téléphone ou PC)</li>
-            <li><div class="step-n">2</div>Uploadez sur <strong>YouTube Studio</strong> en mode <em>Non répertorié</em></li>
-            <li><div class="step-n">3</div>Copiez l’ID après <code>v=</code> dans l’URL</li>
-            <li><div class="step-n">4</div>Ajoutez la vidéo dans <strong>config.js</strong> → tableau VIDEOS</li>
-            <li><div class="step-n">5</div>Re-uploadez <strong>config.js</strong> sur GitHub → site mis à jour !</li>
-          </ol>
-          <a href="videos.html"
-            style="display:block;margin-top:14px;text-align:center;background:rgba(255,255,255,0.1);
-            color:white;padding:9px;border-radius:9px;font-size:13px;font-weight:600;text-decoration:none;">
-            🎬 Voir toutes les vidéos →
-          </a>
+          <input class="prof-input" id="prof-vid-title"   placeholder="Titre — الكسور — مناضرة 1" />
+          <input class="prof-input" id="prof-vid-ytid"    placeholder="ID YouTube (après v=)" />
+          <input class="prof-input" id="prof-vid-dur"     placeholder="Durée (ex: 20 min)" />
+          <select class="prof-input" id="prof-vid-type" style="cursor:pointer;">
+            <option value="mnadarat">📖 مناضرات</option>
+            <option value="imtihane">📝 امتحانات</option>
+            <option value="tamareen">✏️ تمارين</option>
+            <option value="wadiyat">🧩 وضعيات</option>
+          </select>
+          <button class="btn-live-start" id="btn-add-video" onclick="submitVideo()"
+            style="background:linear-gradient(135deg,#065f46,#10b981);">
+            ➕ Publier la vidéo
+          </button>
+          <div id="vid-feedback" style="font-size:12px;margin-top:8px;min-height:18px;"></div>
         </div>
 
       </div>
@@ -341,15 +343,48 @@
       }
     }
 
-    function startDemoLive() {
+    async function startDemoLive() {
+      const btn   = document.getElementById('btn-start-live');
       const id    = document.getElementById('prof-live-id').value.trim();
       const topic = document.getElementById('prof-live-topic').value.trim() || 'الرياضيات';
-      localStorage.setItem('__demo_live', JSON.stringify({ active: true, youtubeId: id, topic }));
-      window.location.reload();
+      btn.disabled = true; btn.textContent = '⏳ En cours...';
+      const res = await startLiveDB(id, topic);
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        btn.disabled = false; btn.textContent = '🔴 Démarrer le Direct';
+        alert('❌ Erreur : ' + res.msg);
+      }
     }
-    function stopDemoLive() {
-      localStorage.removeItem('__demo_live');
-      window.location.reload();
+    async function stopDemoLive() {
+      const btn = document.getElementById('btn-stop-live');
+      btn.disabled = true; btn.textContent = '⏳ Arrêt...';
+      const res = await stopLiveDB();
+      if (res.ok) window.location.reload();
+      else { btn.disabled = false; btn.textContent = '⬛ Arrêter le Direct'; alert('❌ ' + res.msg); }
+    }
+    async function submitVideo() {
+      const btn = document.getElementById('btn-add-video');
+      const fb  = document.getElementById('vid-feedback');
+      const title    = document.getElementById('prof-vid-title').value.trim();
+      const youtubeId= document.getElementById('prof-vid-ytid').value.trim();
+      const duration = document.getElementById('prof-vid-dur').value.trim();
+      const type     = document.getElementById('prof-vid-type').value;
+      if (!title) { fb.textContent = '⚠️ Entrez un titre'; fb.style.color='#fbbf24'; return; }
+      btn.disabled = true; btn.textContent = '⏳ Publication...';
+      const res = await addVideoToDB({ title, type, youtubeId, duration });
+      if (res.ok) {
+        fb.textContent = '✅ Vidéo publiée avec succès !';
+        fb.style.color = '#34d399';
+        document.getElementById('prof-vid-title').value = '';
+        document.getElementById('prof-vid-ytid').value  = '';
+        document.getElementById('prof-vid-dur').value   = '';
+        btn.disabled = false; btn.textContent = '➕ Publier la vidéo';
+        setTimeout(() => fb.textContent = '', 4000);
+      } else {
+        fb.textContent = '❌ ' + res.msg; fb.style.color = '#f87171';
+        btn.disabled = false; btn.textContent = '➕ Publier la vidéo';
+      }
     }
 
     // ── Stats ──

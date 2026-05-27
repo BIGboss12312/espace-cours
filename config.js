@@ -22,7 +22,7 @@ const SITE = {
 //   2. Settings → API → copiez "Project URL" et "anon public"
 //   3. Collez-les ci-dessous (JAMAIS la clé service_role ou sb_secret !)
 const SUPABASE_URL      = "https://basrddayshfetmcdylrd.supabase.co"; // ✅ URL correcte
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJhc3JkZGF5c2hmZXRtY2R5bHJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4OTkxMTQsImV4cCI6MjA5NTQ3NTExNH0.6MvAoRQNSmSacEs9JQnaQEva1snkN8WiSydYTpZ2HuY"; // ← à remplacer par la clé "anon public"
+const SUPABASE_ANON_KEY = "sb_secret_LDU4pIVpi_QAZSNkiaTfkg_pLGtZjG3"; // ← à remplacer par la clé "anon public"
 
 // --- 🧪 Mode Démonstration ---
 // true  = fonctionne sans Supabase (parfait pour tester)
@@ -246,13 +246,21 @@ async function loginUser(email, password) {
     _initSupabase();
     const { data, error } = await _supabaseClient.auth.signInWithPassword({ email: em, password });
     if (error) throw error;
+
+    // ── Récupérer le rôle depuis la table students ──
+    const { data: student } = await _supabaseClient
+      .from('students')
+      .select('role, name, classe')
+      .eq('id', data.user.id)
+      .single();
+
     const meta = data.user.user_metadata || {};
+    const role   = student?.role   || meta.role   || 'eleve';
+    const name   = student?.name   || meta.name   || em.split('@')[0];
+    const classe = student?.classe || meta.classe || '6ème A';
+
     localStorage.setItem('__session', JSON.stringify({
-      email:  data.user.email,
-      name:   meta.name  || em.split('@')[0],
-      classe: meta.classe || '6ème',
-      role:   meta.role  || 'eleve',
-      id:     data.user.id,
+      email, name, classe, role, id: data.user.id,
     }));
     return { ok: true };
   } catch (e) {
@@ -287,20 +295,101 @@ function isTeacher() {
   return s && s.role === 'prof';
 }
 
-// ── Demo live state (stored in localStorage for testing) ──
+// ── Demo live state ──
 function getDemoLive() {
   try { return JSON.parse(localStorage.getItem('__demo_live') || '{}'); }
   catch { return {}; }
 }
 function isLiveActive() {
   if (DEMO_MODE) return getDemoLive().active === true;
-  return LIVE_NOW;
+  return LIVE_NOW; // override par checkLiveStatusDB()
 }
 function getLiveTopic() {
   if (DEMO_MODE) return getDemoLive().topic || LIVE_TOPIC;
-  return LIVE_TOPIC;
+  return window._liveTopicDB || LIVE_TOPIC;
 }
 function getLiveYoutubeId() {
   if (DEMO_MODE) return getDemoLive().youtubeId || LIVE_YOUTUBE_ID;
-  return LIVE_YOUTUBE_ID;
+  return window._liveYtIdDB || LIVE_YOUTUBE_ID;
+}
+
+// ── Supabase live control (pour le vrai mode) ──
+async function checkLiveStatusDB() {
+  if (DEMO_MODE || !_supabaseClient) return null;
+  try {
+    const { data } = await _supabaseClient
+      .from('live_status').select('*').eq('id', 1).single();
+    if (data) {
+      window._liveActiveDB = data.is_active;
+      window._liveTopicDB  = data.topic;
+      window._liveYtIdDB   = data.youtube_id;
+    }
+    return data;
+  } catch { return null; }
+}
+
+async function startLiveDB(youtubeId, topic) {
+  if (DEMO_MODE) {
+    localStorage.setItem('__demo_live', JSON.stringify({ active: true, youtubeId, topic }));
+    return { ok: true };
+  }
+  _initSupabase();
+  const { error } = await _supabaseClient.from('live_status').update({
+    is_active: true, youtube_id: youtubeId, topic, updated_at: new Date().toISOString()
+  }).eq('id', 1);
+  if (error) return { ok: false, msg: error.message };
+  return { ok: true };
+}
+
+async function stopLiveDB() {
+  if (DEMO_MODE) {
+    localStorage.removeItem('__demo_live');
+    return { ok: true };
+  }
+  _initSupabase();
+  const { error } = await _supabaseClient.from('live_status').update({
+    is_active: false, youtube_id: '', topic: '', updated_at: new Date().toISOString()
+  }).eq('id', 1);
+  if (error) return { ok: false, msg: error.message };
+  return { ok: true };
+}
+
+// ── Supabase video management (pour le prof) ──
+async function addVideoToDB({ title, type, youtubeId, duration, description }) {
+  if (DEMO_MODE) {
+    // En mode démo : ajoute localement au tableau VIDEOS
+    const newVideo = {
+      id: VIDEOS.length + 1, title, type,
+      youtubeId: youtubeId || '', duration: duration || '15 min',
+      description: description || '', date: new Date().toLocaleDateString('fr-TN'),
+      views: 0, subject: 'math',
+    };
+    VIDEOS.push(newVideo);
+    return { ok: true };
+  }
+  _initSupabase();
+  const { error } = await _supabaseClient.from('videos').insert({
+    title, type, youtube_id: youtubeId || '',
+    duration: duration || '15 min',
+    description: description || '',
+    published_at: new Date().toISOString().split('T')[0],
+    is_visible: true,
+  });
+  if (error) return { ok: false, msg: error.message };
+  return { ok: true };
+}
+
+async function getVideosFromDB() {
+  if (DEMO_MODE) return VIDEOS;
+  _initSupabase();
+  const { data, error } = await _supabaseClient
+    .from('videos').select('*')
+    .eq('is_visible', true).order('published_at', { ascending: false });
+  if (error) return VIDEOS; // fallback config.js
+  return data.map(v => ({
+    id: v.id, title: v.title, type: v.type,
+    youtubeId: v.youtube_id, duration: v.duration,
+    description: v.description, date: v.published_at,
+    views: v.views, subject: 'math',
+  }));
 }
