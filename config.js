@@ -22,12 +22,12 @@ const SITE = {
 //   2. Settings → API → copiez "Project URL" et "anon public"
 //   3. Collez-les ci-dessous (JAMAIS la clé service_role ou sb_secret !)
 const SUPABASE_URL      = "https://basrddayshfetmcdylrd.supabase.co"; // ✅ URL correcte
-const SUPABASE_ANON_KEY = "VOTRE_CLE_ANON_ICI"; // ← à remplacer par la clé "anon public"
+const SUPABASE_ANON_KEY = "sb_secret_LDU4pIVpi_QAZSNkiaTfkg_pLGtZjG3"; // ← à remplacer par la clé "anon public"
 
 // --- 🧪 Mode Démonstration ---
 // true  = fonctionne sans Supabase (parfait pour tester)
 // false = utilise Supabase pour les vrais élèves
-const DEMO_MODE = true; // Passez à false après avoir mis la vraie clé anon
+const DEMO_MODE = false; // Passez à false après avoir mis la vraie clé anon
 
 // Comptes de démo pour tester
 const DEMO_USERS = [
