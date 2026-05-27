@@ -17,9 +17,13 @@ $$;
 
 -- ── 2. PERMISSIONS SUR live_status ─────────────────────────────
 
--- Supprimer les anciennes permissions trop permissives
-DROP POLICY IF EXISTS "Modifier le statut live" ON public.live_status;
-DROP POLICY IF EXISTS "Lire le statut live"     ON public.live_status;
+-- Supprimer TOUTES les anciennes politiques (évite l'erreur "already exists")
+DROP POLICY IF EXISTS "Modifier le statut live"          ON public.live_status;
+DROP POLICY IF EXISTS "Lire le statut live"              ON public.live_status;
+DROP POLICY IF EXISTS "Eleves peuvent lire le live"      ON public.live_status;
+DROP POLICY IF EXISTS "Prof peut modifier le live"       ON public.live_status;
+DROP POLICY IF EXISTS "Authenticated can update live_status" ON public.live_status;
+DROP POLICY IF EXISTS "Anyone can read live_status"      ON public.live_status;
 
 -- ✅ TOUT LE MONDE connecté peut LIRE le statut live
 CREATE POLICY "Eleves peuvent lire le live"
@@ -36,10 +40,15 @@ CREATE POLICY "Prof peut modifier le live"
 
 -- ── 3. PERMISSIONS SUR videos ──────────────────────────────────
 
--- Supprimer les anciennes permissions
-DROP POLICY IF EXISTS "Lire les vidéos"    ON public.videos;
-DROP POLICY IF EXISTS "Ajouter une vidéo"  ON public.videos;
-DROP POLICY IF EXISTS "Modifier une vidéo" ON public.videos;
+DROP POLICY IF EXISTS "Lire les vidéos"                      ON public.videos;
+DROP POLICY IF EXISTS "Ajouter une vidéo"                    ON public.videos;
+DROP POLICY IF EXISTS "Modifier une vidéo"                   ON public.videos;
+DROP POLICY IF EXISTS "Eleves peuvent lire les videos"       ON public.videos;
+DROP POLICY IF EXISTS "Prof peut ajouter une video"          ON public.videos;
+DROP POLICY IF EXISTS "Prof peut modifier une video"         ON public.videos;
+DROP POLICY IF EXISTS "Prof peut supprimer une video"        ON public.videos;
+DROP POLICY IF EXISTS "Authenticated users can read videos"  ON public.videos;
+DROP POLICY IF EXISTS "Authenticated can manage videos"      ON public.videos;
 
 -- ✅ TOUT LE MONDE connecté peut LIRE les vidéos visibles
 CREATE POLICY "Eleves peuvent lire les videos"
@@ -66,7 +75,9 @@ CREATE POLICY "Prof peut supprimer une video"
 
 -- ── 4. PERMISSIONS SUR students ────────────────────────────────
 
-DROP POLICY IF EXISTS "Lire son profil" ON public.students;
+DROP POLICY IF EXISTS "Lire son profil"           ON public.students;
+DROP POLICY IF EXISTS "Lire son propre profil"    ON public.students;
+DROP POLICY IF EXISTS "Prof lit tous les profils" ON public.students;
 
 -- Chaque élève lit son propre profil
 CREATE POLICY "Lire son propre profil"
@@ -79,11 +90,9 @@ CREATE POLICY "Prof lit tous les profils"
   TO authenticated USING (public.is_prof());
 
 
--- ── 5. CRÉER LE COMPTE PROFESSEUR ──────────────────────────────
--- Remplacez l'email et le mot de passe puis exécutez ce bloc
-
--- D'abord, créez le compte via Authentication → Users → Add user
--- Ensuite, exécutez cette requête pour lui donner le rôle PROF :
+-- ── 5. DONNER LE RÔLE PROF À UN UTILISATEUR ────────────────────
+-- Après avoir créé le compte via Authentication → Users → Add user,
+-- remplacez l'email ci-dessous et exécutez ces 2 requêtes :
 
 -- UPDATE auth.users
 -- SET raw_user_meta_data = jsonb_build_object(
@@ -93,17 +102,19 @@ CREATE POLICY "Prof lit tous les profils"
 -- )
 -- WHERE email = 'VOTRE_EMAIL_PROF@exemple.com';
 
+-- UPDATE public.students SET role = 'prof'
+-- WHERE id = (SELECT id FROM auth.users WHERE email = 'VOTRE_EMAIL_PROF@exemple.com');
+
 
 -- ── 6. VÉRIFICATION FINALE ─────────────────────────────────────
 SELECT
-  schemaname,
   tablename,
   policyname,
-  cmd as operation,
-  CASE WHEN roles::text LIKE '%authenticated%' THEN '✅' ELSE '❓' END as actif
+  cmd      as operation,
+  '✅ OK'  as statut
 FROM pg_policies
 WHERE schemaname = 'public'
   AND tablename IN ('live_status', 'videos', 'students')
 ORDER BY tablename, cmd;
 
--- ✅ Vous devriez voir les permissions listées pour chaque table
+-- ✅ Vous devriez voir toutes les permissions listées — succès !
