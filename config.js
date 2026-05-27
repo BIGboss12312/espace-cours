@@ -27,7 +27,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // --- 🧪 Mode Démonstration ---
 // true  = fonctionne sans Supabase (parfait pour tester)
 // false = utilise Supabase pour les vrais élèves
-const DEMO_MODE = true; // Passez à false après avoir mis la vraie clé anon
+const DEMO_MODE = false; // Passez à false après avoir mis la vraie clé anon
 
 // Comptes de démo pour tester
 const DEMO_USERS = [
